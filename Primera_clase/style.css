@@ -1,0 +1,400 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f8eeee;
+    color: #333;
+}
+
+/* CONTENEDOR */
+
+.contenedor {
+    width: 85%;
+    max-width: 1000px;
+
+    margin: 40px auto;
+
+    background: white;
+
+    padding: 35px;
+
+    border: 2px solid #e8b5b5;
+
+    border-radius: 18px;
+
+    box-shadow: 0 8px 25px rgba(120, 40, 40, 0.12);
+}
+
+
+/* TITULO */
+
+h1 {
+    text-align: center;
+
+    color: #b83b3b;
+
+    margin-bottom: 30px;
+
+    font-size: 32px;
+}
+
+
+/* FORMULARIO */
+
+.formulario {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    background: #fff7f7;
+
+    padding: 25px;
+
+    border: 1px solid #edcaca;
+
+    border-radius: 14px;
+}
+
+
+label {
+
+    font-weight: bold;
+
+    color: #8f3030;
+
+    margin-top: 5px;
+}
+
+
+input {
+
+    padding: 12px;
+
+    font-size: 16px;
+
+    border: 1px solid #d9a5a5;
+
+    border-radius: 8px;
+
+    outline: none;
+
+    background: white;
+
+    transition: 0.2s;
+}
+
+
+input:focus {
+
+    border-color: #c65353;
+
+    box-shadow:
+        0 0 6px rgba(198, 83, 83, 0.25);
+}
+
+
+/* BOTONES */
+
+button {
+
+    padding: 12px;
+
+    margin-top: 8px;
+
+    background: #c65353;
+
+    color: white;
+
+    border: none;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 16px;
+
+    font-weight: bold;
+
+    transition: 0.2s;
+}
+
+
+button:hover {
+
+    background: #a94040;
+
+    transform: translateY(-1px);
+}
+
+
+/* LISTA */
+
+.lista {
+
+    margin-top: 30px;
+
+    border: 1px solid #e5bcbc;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+}
+
+
+.lista h2 {
+
+    margin: 0;
+
+    padding: 18px;
+
+    color: #8f3030;
+
+    background: #fff1f1;
+}
+
+
+/* ENCABEZADO */
+
+.encabezado,
+.producto {
+
+    display: grid;
+
+    grid-template-columns:
+        2fr
+        1fr
+        1.2fr
+        1.2fr
+        0.8fr;
+
+    gap: 10px;
+
+    padding: 14px 18px;
+
+    align-items: center;
+}
+
+
+.encabezado {
+
+    font-weight: bold;
+
+    color: white;
+
+    background: #c65353;
+}
+
+
+/* PRODUCTOS */
+
+.producto {
+
+    border-top: 1px solid #edd2d2;
+
+    background: white;
+}
+
+
+.producto:nth-child(even) {
+
+    background: #fff8f8;
+}
+
+
+/* INPUTS DE LA TABLA */
+
+.producto input {
+
+    width: 100%;
+
+    padding: 8px;
+
+    border: 1px solid #d9a5a5;
+
+    border-radius: 6px;
+
+    font-size: 14px;
+}
+
+
+/* BOTÓN ELIMINAR */
+
+.boton-eliminar {
+
+    background: #e07878;
+
+    padding: 8px;
+
+    margin: 0;
+}
+
+
+.boton-eliminar:hover {
+
+    background: #c65353;
+}
+
+
+/* TOTAL */
+
+.total {
+
+    margin-top: 25px;
+
+    padding: 18px 25px;
+
+    text-align: right;
+
+    font-size: 24px;
+
+    font-weight: bold;
+
+    color: #8f3030;
+
+    background: #fff1f1;
+
+    border: 2px solid #e5bcbc;
+
+    border-radius: 12px;
+}
+
+
+/* BOTÓN FACTURA */
+
+.boton-factura {
+
+    width: 100%;
+
+    margin-top: 20px;
+
+    background: #8f3030;
+}
+
+
+.boton-factura:hover {
+
+    background: #722525;
+}
+
+
+/* ========================= */
+/* MINI FACTURA */
+/* ========================= */
+
+.factura {
+
+    display: none;
+
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: rgba(50, 20, 20, 0.45);
+
+    justify-content: center;
+
+    align-items: center;
+
+    z-index: 1000;
+}
+
+
+.factura-contenido {
+
+    width: 400px;
+
+    background: white;
+
+    padding: 30px;
+
+    border-radius: 16px;
+
+    border: 2px solid #d99a9a;
+
+    box-shadow:
+        0 12px 35px rgba(0, 0, 0, 0.25);
+
+    animation: aparecer 0.2s ease;
+}
+
+
+.factura-contenido h2 {
+
+    text-align: center;
+
+    color: #a63c3c;
+
+    margin-top: 0;
+}
+
+
+.factura-contenido p {
+
+    text-align: center;
+
+    color: #777;
+}
+
+
+.factura-contenido hr {
+
+    border: none;
+
+    border-top: 1px solid #e5caca;
+
+    margin: 15px 0;
+}
+
+
+.fila-factura {
+
+    padding: 10px 0;
+
+    border-bottom: 1px solid #eee;
+}
+
+
+.fila-factura div {
+
+    margin-bottom: 4px;
+}
+
+
+.factura-contenido h3 {
+
+    text-align: right;
+
+    color: #8f3030;
+
+    font-size: 20px;
+}
+
+
+/* ANIMACIÓN */
+
+@keyframes aparecer {
+
+    from {
+
+        opacity: 0;
+
+        transform: scale(0.9);
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform: scale(1);
+    }
+}

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Registro de productos</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="contenedor">
+
+        <h1>Registro de productos</h1>
+
+
+        <!-- FORMULARIO PARA AGREGAR -->
+
+        <div class="formulario">
+
+            <label for="producto">Producto</label>
+
+            <input
+                type="text"
+                id="producto"
+                placeholder="Nombre del producto"
+            >
+
+
+            <label for="cantidad">Cantidad</label>
+
+            <input
+                type="number"
+                id="cantidad"
+                placeholder="Cantidad"
+                min="1"
+            >
+
+
+            <label for="precio">Precio</label>
+
+            <input
+                type="number"
+                id="precio"
+                placeholder="Precio"
+                min="1"
+            >
+
+
+            <button onclick="agregarProducto()">
+                Agregar producto
+            </button>
+
+        </div>
+
+
+        <!-- PRODUCTOS -->
+
+        <div class="lista">
+
+            <h2>Productos agregados</h2>
+
+            <div class="encabezado">
+
+                <span>Producto</span>
+                <span>Cantidad</span>
+                <span>Precio</span>
+                <span>Subtotal</span>
+                <span>Acciones</span>
+
+            </div>
+
+
+            <div id="listaProductos"></div>
+
+        </div>
+
+
+        <!-- TOTAL -->
+
+        <div class="total">
+
+            Total:
+            $<span id="total">0</span>
+
+        </div>
+
+
+        <!-- BOTÓN FACTURA -->
+
+        <button
+            class="boton-factura"
+            onclick="generarFactura()"
+        >
+            🧾 Generar factura
+        </button>
+
+    </div>
+
+
+
+    <!-- MINI FACTURA -->
+
+    <div id="factura" class="factura">
+
+        <div class="factura-contenido">
+
+            <h2>FACTURA</h2>
+
+            <p>Detalle de compra</p>
+
+            <hr>
+
+
+            <div id="productosFactura"></div>
+
+
+            <hr>
+
+
+            <h3>
+                TOTAL:
+                $<span id="totalFactura">0</span>
+            </h3>
+
+
+            <button onclick="cerrarFactura()">
+                Cerrar
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
