@@ -1,0 +1,32 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Acordeon</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Secciones desplegables</h2>
+
+  <ion-accordion-group expand="inset">
+    <ion-accordion value="general">
+      <ion-item slot="header" color="light">
+        <ion-label>Información general</ion-label>
+      </ion-item>
+      <div class="ion-padding" slot="content">Contenido de la primera sección.</div>
+    </ion-accordion>
+    <ion-accordion value="detalles">
+      <ion-item slot="header" color="light">
+        <ion-label>Detalles</ion-label>
+      </ion-item>
+      <div class="ion-padding" slot="content">Contenido de la segunda sección.</div>
+    </ion-accordion>
+    <ion-accordion value="ayuda" [disabled]="true">
+      <ion-item slot="header" color="light">
+        <ion-label>Ayuda (deshabilitada)</ion-label>
+      </ion-item>
+      <div class="ion-padding" slot="content">Esta sección está deshabilitada.</div>
+    </ion-accordion>
+  </ion-accordion-group>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

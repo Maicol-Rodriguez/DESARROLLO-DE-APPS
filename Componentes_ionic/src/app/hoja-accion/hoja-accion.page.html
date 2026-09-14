@@ -1,0 +1,22 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Hoja-accion</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Tipos de hoja de acción</h2>
+  <ion-button id="actions-basic">Hoja básica</ion-button>
+  <ion-action-sheet trigger="actions-basic" header="Acciones" [buttons]="actionButtons"></ion-action-sheet>
+
+  <ion-button id="actions-subtitle">Con subtítulo</ion-button>
+  <ion-action-sheet trigger="actions-subtitle" header="Archivo" subHeader="Elige una acción" [buttons]="actionButtons"></ion-action-sheet>
+
+  <ion-button id="actions-no-backdrop">Sin cerrar al tocar afuera</ion-button>
+  <ion-action-sheet trigger="actions-no-backdrop" header="Opciones" [backdropDismiss]="false" [buttons]="actionButtons"></ion-action-sheet>
+
+  <ion-button id="actions-translucent">Translúcida</ion-button>
+  <ion-action-sheet trigger="actions-translucent" header="Más opciones" [translucent]="true" [buttons]="actionButtons"></ion-action-sheet>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

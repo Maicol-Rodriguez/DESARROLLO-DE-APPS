@@ -1,0 +1,27 @@
+ion-toolbar {
+    --background: #c5aa77;
+    --color: #000000;
+    text-align: center;
+    font-weight: bold;
+}
+
+ion-button {
+    padding: 20px 90px;
+    --background: #c5aa77;
+    --color: #030303;
+    text-align: center;
+    font-weight: bold;
+}
+
+ion-button:hover {
+    --background: #a18b61;
+    --color: #faf5df;
+    text-align: center;
+    font-weight: bold;
+}
+
+ion-content {
+    --background: #f4eadb;
+    --color: #3e2b20;
+    text-align: center;
+}

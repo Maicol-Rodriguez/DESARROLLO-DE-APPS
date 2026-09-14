@@ -1,0 +1,29 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Boton_Flotante</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Botón flotante</h2>
+  <p>Presiona el botón para mostrar sus opciones.</p>
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button aria-label="Abrir opciones">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+    <ion-fab-list side="top">
+      <ion-fab-button aria-label="Documento">
+        <ion-icon name="document"></ion-icon>
+      </ion-fab-button>
+      <ion-fab-button aria-label="Paleta de colores">
+        <ion-icon name="color-palette"></ion-icon>
+      </ion-fab-button>
+      <ion-fab-button aria-label="Internet">
+        <ion-icon name="globe"></ion-icon>
+      </ion-fab-button>
+    </ion-fab-list>
+  </ion-fab>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

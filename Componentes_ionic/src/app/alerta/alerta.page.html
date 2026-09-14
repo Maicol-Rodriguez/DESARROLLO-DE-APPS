@@ -1,0 +1,48 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Alerta</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  
+  <ion-button id="present-alert">¡ALERTA!</ion-button>
+  <ion-alert
+    trigger="present-alert"
+    header="ALERTA DE PRUEBA"
+    subHeader="Es su decicion si acepta seguir"
+    message="este link puede contener contenido no deseado."
+    [buttons]="alertButtons"
+  ></ion-alert>
+
+  <ion-button id="present-alert-result">ALERTA!!!</ion-button>
+  <ion-alert
+  trigger="present-alert-result"
+  header="Aviso de alerta"
+  [buttons]="alertButtons"
+  (didDismiss)="setResult($event)"
+  ></ion-alert>
+
+  <ion-button id="present-alert-inputs">PRESIONA</ion-button>
+  <ion-alert
+  trigger="present-alert-inputs"
+  header="Por favor ingrese su información"
+  [buttons]="alertButtons"
+  [inputs]="alertInputs"
+  ></ion-alert>
+
+  <ion-button id="present-alert-colors">COLOR</ion-button>
+  <ion-alert
+  trigger="present-alert-colors"
+  header="Select your favorite color"
+  [buttons]="alertButtons"
+  [inputs]="colorInputs"
+  ></ion-alert>
+
+
+
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">
+    Volver
+  </ion-button>

@@ -1,0 +1,16 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Rango</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Tipos de rango</h2>
+
+  <ion-range label="Volumen" label-placement="stacked" [value]="30"></ion-range>
+  <ion-range label="Con indicador" label-placement="stacked" [value]="60" [pin]="true"></ion-range>
+  <ion-range label="Dos controles" label-placement="stacked" [dualKnobs]="true" [value]="{ lower: 20, upper: 80 }"></ion-range>
+  <ion-range label="Con marcas" label-placement="stacked" [min]="0" [max]="10" [ticks]="true" [snaps]="true"></ion-range>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

@@ -1,0 +1,57 @@
+.intro,
+ion-card {
+  margin-bottom: 24px;
+}
+
+a {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+ion-toolbar {
+    --background: #a18b61;
+    --color: #24231e;
+    text-align: center;
+    font-weight: bold;
+}
+
+.contenedor-componentes {
+  max-width: 500px;
+  margin: 20px auto;
+  padding: 0 16px;
+}
+
+.lista-componentes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lista-componentes li {
+  background-color: #ead8c2;
+  border: 1px solid #c5aa77;
+  border-radius: 10px;
+  padding: 14px 18px;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.lista-componentes li:hover {
+  background-color: #dfc7a9;
+  transform: translateX(4px);
+}
+
+.lista-componentes a {
+  color: #70482e;
+  text-decoration: none;
+  font-size: 16px;
+  display: block;
+}
+
+.lista-componentes a:hover {
+  color: #8b5e3c;
+  text-decoration: underline;
+}

@@ -1,0 +1,17 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Seleccionar</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Tipos de selección</h2>
+  <ion-list>
+    <ion-item><ion-select label="Simple" placeholder="Elige una fruta"><ion-select-option value="manzana">Manzana</ion-select-option><ion-select-option value="pera">Pera</ion-select-option></ion-select></ion-item>
+    <ion-item><ion-select label="Múltiple" [multiple]="true" placeholder="Elige varias"><ion-select-option value="rojo">Rojo</ion-select-option><ion-select-option value="azul">Azul</ion-select-option><ion-select-option value="verde">Verde</ion-select-option></ion-select></ion-item>
+    <ion-item><ion-select label="Popover" interface="popover" placeholder="Elige un animal"><ion-select-option value="perro">Perro</ion-select-option><ion-select-option value="gato">Gato</ion-select-option></ion-select></ion-item>
+    <ion-item><ion-select label="Action sheet" interface="action-sheet" placeholder="Elige un tamaño"><ion-select-option value="pequeno">Pequeño</ion-select-option><ion-select-option value="grande">Grande</ion-select-option></ion-select></ion-item>
+  </ion-list>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

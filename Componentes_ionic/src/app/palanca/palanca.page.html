@@ -1,0 +1,15 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Palanca</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Tipos de palanca</h2>
+  <ion-toggle>Normal</ion-toggle>
+  <ion-toggle [checked]="true">Activada</ion-toggle>
+  <ion-toggle [disabled]="true">Deshabilitada</ion-toggle>
+  <ion-toggle [enableOnOffLabels]="true">Con etiquetas ON/OFF</ion-toggle>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

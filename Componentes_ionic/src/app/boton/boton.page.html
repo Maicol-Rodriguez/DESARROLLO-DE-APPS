@@ -1,0 +1,29 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Botones</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+
+  <ion-button>
+    Botón 
+  </ion-button>
+
+  <ion-button [disabled]="true">
+    Deshabilitado
+  </ion-button>
+
+  <ion-button>
+    <ion-icon slot="icon-only" name="heart"></ion-icon>
+  </ion-button>
+  
+  <ion-button shape="round">
+    <ion-icon slot="icon-only" name="heart"></ion-icon>
+  </ion-button>
+
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">
+    Volver
+  </ion-button>

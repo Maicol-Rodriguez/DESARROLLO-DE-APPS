@@ -1,0 +1,32 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Popover</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Tipos de popover</h2>
+
+  <ion-button id="popover-click">Abrir con clic</ion-button>
+  <ion-popover trigger="popover-click">
+    <ng-template>
+      <ion-content class="ion-padding">Popover activado con clic.</ion-content>
+    </ng-template>
+  </ion-popover>
+
+  <ion-button id="popover-hover">Pasar el cursor</ion-button>
+  <ion-popover trigger="popover-hover" trigger-action="hover">
+    <ng-template>
+      <ion-content class="ion-padding">Popover activado al pasar el cursor.</ion-content>
+    </ng-template>
+  </ion-popover>
+
+  <ion-button id="popover-menu">Abrir menú</ion-button>
+  <ion-popover trigger="popover-menu" dismiss-on-select="true">
+    <ng-template>
+      <ion-content class="ion-padding">Popover tipo menú.</ion-content>
+    </ng-template>
+  </ion-popover>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

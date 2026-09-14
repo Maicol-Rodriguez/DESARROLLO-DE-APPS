@@ -1,0 +1,66 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>insignia</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-list>
+    <ion-item>
+      <ion-label>Followers</ion-label>
+      <ion-badge color="primary">22k</ion-badge>
+    </ion-item>
+    <ion-item>
+      <ion-label>Likes</ion-label>
+      <ion-badge color="secondary">118k</ion-badge>
+    </ion-item>
+    <ion-item>
+      <ion-label>Stars</ion-label>
+      <ion-badge color="tertiary">34k</ion-badge>
+    </ion-item>
+    <ion-item>
+      <ion-label>Completed</ion-label>
+      <ion-badge color="success">80BM</ion-badge>
+    </ion-item>
+    <ion-item>
+      <ion-label>Warnings</ion-label>
+      <ion-badge color="warning">70BM</ion-badge>
+    </ion-item>
+    <ion-item>
+      <ion-label>Notifications</ion-label>
+      <ion-badge color="danger">100BM</ion-badge>
+    </ion-item>
+  </ion-list>
+
+  <ion-tab-bar color="light">
+    <ion-tab-button tab="1">
+      <ion-icon name="heart"></ion-icon>
+      <ion-label>Favoritos</ion-label>
+      <ion-badge color="danger">15</ion-badge>
+    </ion-tab-button>
+
+    <ion-tab-button tab="2">
+      <ion-icon name="musical-note"></ion-icon>
+      <ion-label>Musica</ion-label>
+      <ion-badge color="danger">75</ion-badge>
+    </ion-tab-button>
+
+    <ion-tab-button tab="3">
+      <ion-icon name="calendar"></ion-icon>
+      <ion-label>Calendario</ion-label>
+      <ion-badge color="danger">100</ion-badge>
+    </ion-tab-button>
+  </ion-tab-bar>
+
+  <ion-list>
+  <ion-item>
+    <ion-label>Notificaciones</ion-label>
+      <ion-badge>22</ion-badge>
+    </ion-item>
+  </ion-list>
+
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">
+  Volver
+</ion-button>

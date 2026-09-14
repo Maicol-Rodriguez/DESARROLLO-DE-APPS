@@ -1,0 +1,15 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Fecha-Hora</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Tipos de fecha y hora</h2>
+  <ion-datetime presentation="date" locale="es-ES"></ion-datetime>
+  <ion-datetime presentation="time" locale="es-ES"></ion-datetime>
+  <ion-datetime presentation="date-time" [showDefaultButtons]="true"></ion-datetime>
+  <ion-datetime presentation="date" [multiple]="true" [showAdjacentDays]="true"></ion-datetime>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

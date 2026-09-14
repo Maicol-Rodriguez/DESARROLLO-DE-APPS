@@ -1,0 +1,15 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Barra-busqueda</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Tipos de barra de búsqueda</h2>
+  <ion-searchbar placeholder="Búsqueda normal"></ion-searchbar>
+  <ion-searchbar placeholder="Con valor" value="Ionic"></ion-searchbar>
+  <ion-searchbar placeholder="Animada" [animated]="true"></ion-searchbar>
+  <ion-searchbar placeholder="Deshabilitada" [disabled]="true"></ion-searchbar>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

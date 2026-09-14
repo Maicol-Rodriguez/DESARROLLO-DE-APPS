@@ -1,0 +1,22 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Tostada</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Tipos de tostada</h2>
+  <ion-button id="toast-bottom">Abajo</ion-button>
+  <ion-toast trigger="toast-bottom" message="Mensaje en la parte inferior" [duration]="2500"></ion-toast>
+
+  <ion-button id="toast-top">Arriba</ion-button>
+  <ion-toast trigger="toast-top" message="Mensaje en la parte superior" position="top" [duration]="2500"></ion-toast>
+
+  <ion-button id="toast-middle">Centro</ion-button>
+  <ion-toast trigger="toast-middle" message="Mensaje en el centro" position="middle" [duration]="2500"></ion-toast>
+
+  <ion-button id="toast-icon">Con icono y botón</ion-button>
+  <ion-toast trigger="toast-icon" message="Guardado correctamente" icon="globe" [buttons]="toastButtons" [duration]="4000"></ion-toast>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>

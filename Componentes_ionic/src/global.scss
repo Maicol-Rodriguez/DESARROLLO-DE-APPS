@@ -1,0 +1,99 @@
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+:root {
+	--ion-color-primary: #8b5e3c;
+	--ion-color-primary-rgb: 139, 94, 60;
+	--ion-color-primary-contrast: #ffffff;
+	--ion-color-primary-contrast-rgb: 255, 255, 255;
+	--ion-color-primary-shade: #7a5335;
+	--ion-color-primary-tint: #966e50;
+	--ion-background-color: #f4eadb;
+	--ion-background-color-rgb: 244, 234, 219;
+	--ion-text-color: #3e2b20;
+	--ion-text-color-rgb: 62, 43, 32;
+	--ion-color-secondary: #b08968;
+	--ion-color-tertiary: #c49a6c;
+	--ion-color-success: #718355;
+	--ion-color-warning: #c58b45;
+	--ion-color-danger: #a64b3c;
+}
+
+body {
+	background: #f4eadb;
+	color: #3e2b20;
+}
+
+ion-content {
+	--background: #f4eadb;
+	--color: #3e2b20;
+}
+
+ion-toolbar {
+	--background: #c5aa77;
+	--color: #3e2b20;
+}
+
+ion-button {
+	--background: #8b5e3c;
+	--background-hover: #70482e;
+	--color: #ffffff;
+}
+
+ion-card,
+ion-item,
+ion-list,
+ion-select,
+ion-searchbar,
+ion-checkbox,
+ion-toggle,
+ion-range,
+ion-datetime,
+ion-chip {
+	--color: #3e2b20;
+}
+
+.volver-btn {
+	margin: 16px 24px;
+}
+
+ion-router-outlet {
+	pointer-events: none;
+}
+
+ion-router-outlet > .ion-page {
+	pointer-events: auto;
+}

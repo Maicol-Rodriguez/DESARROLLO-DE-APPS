@@ -1,0 +1,23 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Indicaodr-progeso</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <h2>Tipos de progreso</h2>
+
+  <p>Progreso determinado</p>
+  <ion-progress-bar [value]="0.25"></ion-progress-bar>
+
+  <p>Progreso avanzado</p>
+  <ion-progress-bar color="success" [value]="0.7"></ion-progress-bar>
+
+  <p>Progreso con buffer</p>
+  <ion-progress-bar [value]="0.4" [buffer]="0.75"></ion-progress-bar>
+
+  <p>Progreso indeterminado</p>
+  <ion-progress-bar color="warning" type="indeterminate"></ion-progress-bar>
+</ion-content>
+
+<ion-button routerLink="/tabs/tab1" class="volver-btn">Volver</ion-button>
