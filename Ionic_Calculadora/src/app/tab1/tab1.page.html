@@ -1,0 +1,45 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Calculadora básica de ionic</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+
+  <h1>Calculadora</h1>
+
+  <ion-item>
+    <ion-label position="stacked">Número 1:</ion-label>
+    <ion-input type="number" [(ngModel)]="numero1"></ion-input>
+  </ion-item>
+
+  <ion-item>
+    <ion-label position="stacked">Número 2:</ion-label>
+    <ion-input type="number" [(ngModel)]="numero2"></ion-input>
+  </ion-item>
+
+  <ion-item>
+    <ion-label position="stacked">Operación:</ion-label>
+    <ion-select [(ngModel)]="operacion" interface="popover">
+      <ion-select-option value="+">Suma (+)</ion-select-option>
+      <ion-select-option value="-">Resta (-)</ion-select-option>
+      <ion-select-option value="*">Multiplicación (x)</ion-select-option>
+      <ion-select-option value="/">División (÷)</ion-select-option>
+    </ion-select>
+  </ion-item>
+
+  <ion-button expand="block" (click)="calcular()" class="ion-margin-top">
+    Calcular
+  </ion-button>
+
+  <h2 class="ion-margin-top">Historial</h2>
+
+  <p *ngIf="historial.length === 0">Aún no hay operaciones.</p>
+
+  <ion-list *ngIf="historial.length > 0">
+    <ion-item *ngFor="let item of historial">
+      <ion-label>{{ item.texto }}</ion-label>
+    </ion-item>
+  </ion-list>
+
+</ion-content>

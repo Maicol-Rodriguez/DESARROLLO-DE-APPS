@@ -1,0 +1,40 @@
+h1 {
+    color: #6f4e37;
+    text-align: center;
+    font-weight: bold;
+}
+
+h2 {
+    color: #4a2c17;
+    text-align: center;
+    font-weight: bold;
+}
+
+p {
+    text-align: center;
+    color: #8b6f47;
+}
+
+ion-toolbar {
+    --background: #6f4e37;
+    --color: #f5e6d3;
+    font-weight: bold;
+    text-align: center;
+}
+
+ion-item {
+    color: #4a2c17;
+    --background: #ffffff;
+    --border-color: #1d1d1d;
+}
+
+ion-content {
+    --background: #f5efe6;
+}
+
+ion-button {
+    --background: #6f4e37;
+    --background-hover: #5a3d2b;
+    --background-activated: #4a2c17;
+    --color: #f5e6d3;
+}
