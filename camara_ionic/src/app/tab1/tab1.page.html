@@ -1,0 +1,59 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Bitacora de evidencias</ion-title>
+  </ion-toolbar>
+  <ion-toolbar color="light">
+    <ion-item lines="none">
+      <ion-icon
+        slot="start"
+        [name]="isHighDef() ? 'sparkles' : 'flash-off-outline'"
+        color="primary"
+        aria-hidden="true"
+      ></ion-icon>
+      <ion-label>
+        <h2>{{ isHighDef() ? 'Modo alta definicion (1920px)' : 'Modo ahorro de datos (800px)' }}</h2>
+        <p>{{ isHighDef() ? 'Calidad 95% - Mayor detalle' : 'Calidad 60% - Carga rapida' }}</p>
+      </ion-label>
+      <ion-toggle
+        slot="end"
+        [checked]="isHighDef()"
+        (ionChange)="toggleQuality($event.detail.checked)"
+        aria-label="Cambiar calidad de captura"
+      ></ion-toggle>
+    </ion-item>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-grid>
+    <ion-row>
+      @for (photo of photoService.photos(); track photo.filepath; let i = $index) {
+        <ion-col size="12" size-md="6" size-lg="4">
+          <ion-card>
+            <ion-img [src]="photo.webPath" [alt]="photo.filepath"></ion-img>
+            <ion-button
+              color="danger"
+              fill="clear"
+              expand="block"
+              (click)="photoService.deletePhoto(i)"
+            >
+              <ion-icon slot="start" name="trash-outline" aria-hidden="true"></ion-icon>
+              Eliminar
+            </ion-button>
+          </ion-card>
+        </ion-col>
+      } @empty {
+        <ion-col size="12" class="empty-state">
+          <ion-icon name="camera" aria-hidden="true"></ion-icon>
+          <p>No hay fotografias registradas.<br />Pulsa el boton inferior para comenzar.</p>
+        </ion-col>
+      }
+    </ion-row>
+  </ion-grid>
+
+  <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+    <ion-fab-button (click)="takePhoto()" aria-label="Capturar fotografia">
+      <ion-icon name="camera" aria-hidden="true"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>
