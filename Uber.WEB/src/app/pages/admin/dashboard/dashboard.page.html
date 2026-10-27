@@ -1,0 +1,60 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="dark">
+    <ion-title>
+      <span class="brand-title">UBER</span>
+      <span class="role-tag">ADMINISTRADOR</span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button color="light" (click)="logout()">
+        Cerrar Sesión
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding admin-content" [fullscreen]="true">
+  <div class="page-container">
+
+    <!-- Tarjeta de Bienvenida del Administrador -->
+    <ion-card class="user-card">
+      <ion-card-header>
+        <div class="user-header-row">
+          <div>
+            <ion-card-subtitle>Panel de Control</ion-card-subtitle>
+            <ion-card-title>Bienvenido, {{ currentUser?.name || 'Administrador' }}</ion-card-title>
+          </div>
+          <ion-badge color="tertiary" class="role-badge">Admin</ion-badge>
+        </div>
+      </ion-card-header>
+      <ion-card-content>
+        <p>Sesión activa: <code>{{ currentUser?.email }}</code></p>
+        <p class="status-text">Tienes privilegios de administración de plataforma.</p>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="flow-card ion-margin-top">
+      <ion-card-header>
+        <ion-card-subtitle>Módulo Admin</ion-card-subtitle>
+        <ion-card-title>Métricas y Gestión</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p>En la Etapa 6 implementaremos aquí:</p>
+        <div class="features-list">
+          <div class="feature-item">
+            <span class="feature-bullet">•</span>
+            <span>Dashboard con métricas globales y KPIs de demanda</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-bullet">•</span>
+            <span>Aprobación y suspensión de conductores</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-bullet">•</span>
+            <span>Gestión de tarifas y reportes</span>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+</ion-content>

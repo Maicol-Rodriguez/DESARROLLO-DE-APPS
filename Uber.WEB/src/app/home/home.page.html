@@ -1,0 +1,76 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="dark">
+    <ion-title>
+      Uber App - Verificación Base
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding" [fullscreen]="true">
+  <div class="content-container">
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-subtitle>Etapa 1: Configuración Base</ion-card-subtitle>
+        <ion-card-title>Frontend Uber + Laravel JWT</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p>Esta pantalla te permite verificar que <strong>HttpClient</strong>, el <strong>Environment</strong> y el <strong>AuthInterceptor</strong> están correctamente enlazados.</p>
+        
+        <ion-list lines="inset" class="ion-margin-top">
+          <ion-item>
+            <ion-label>
+              <h3>URL del Backend</h3>
+              <p><code>{{ apiUrl }}</code></p>
+            </ion-label>
+            <ion-badge slot="end" color="success">Configurado</ion-badge>
+          </ion-item>
+
+          <ion-item>
+            <ion-label>
+              <h3>Interceptor HTTP</h3>
+              <p>Inyecta Bearer Token & captura errores (401, 403, 409, 422, etc.)</p>
+            </ion-label>
+            <ion-badge slot="end" color="primary">Activo</ion-badge>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Prueba de Conexión</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p>Presiona el botón para enviar una petición real a la API (<code>GET /fares/active</code>):</p>
+        
+        <ion-button expand="block" (click)="testConnection()" [disabled]="loading" class="ion-margin-top">
+          @if (loading) {
+            <ion-spinner name="crescent"></ion-spinner>
+            <span style="margin-left: 8px;">Conectando...</span>
+          } @else {
+            <span>Probar Conexión con Backend</span>
+          }
+        </ion-button>
+
+        <ion-button expand="block" fill="outline" color="warning" (click)="test401Simulation()" [disabled]="loading" class="ion-margin-top">
+          Probar Interceptor 401 (Ruta protegida sin token)
+        </ion-button>
+
+        @if (responseStatus) {
+          <div class="response-box ion-margin-top">
+            <h4>Resultado:</h4>
+            <ion-badge [color]="responseStatus.includes('200') ? 'success' : 'danger'">
+              {{ responseStatus }}
+            </ion-badge>
+
+            @if (responseData) {
+              <pre class="json-viewer"><code>{{ responseData }}</code></pre>
+            }
+          </div>
+        }
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+</ion-content>

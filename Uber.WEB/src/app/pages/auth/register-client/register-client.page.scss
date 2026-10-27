@@ -1,0 +1,53 @@
+.auth-content {
+  --background: radial-gradient(circle at top center, #27201c 0%, #121110 70%);
+}
+
+.auth-wrapper {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 16px 0;
+}
+
+.brand-header {
+  text-align: center;
+  margin-bottom: 20px;
+
+  .role-badge {
+    display: inline-block;
+    padding: 6px 18px;
+    background: #1e1916;
+    border: 1px solid var(--app-coffee-accent);
+    color: var(--app-coffee-accent);
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 1.7rem;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    color: #f7f3ee;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: #b0a59b;
+    margin: 0;
+  }
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--app-border-color);
+
+  p {
+    color: #9c9186;
+    font-size: 0.9rem;
+    margin: 0 0 4px 0;
+  }
+}

@@ -1,0 +1,103 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="dark">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/login"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Registro de Cliente</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding auth-content" [fullscreen]="true">
+  <div class="auth-wrapper">
+
+    <div class="brand-header">
+      <div class="role-badge">PASAJERO</div>
+      <h1>Crear Cuenta</h1>
+      <p>Pide viajes seguros y cómodos en segundos</p>
+    </div>
+
+    <ion-card class="auth-card">
+      <ion-card-header>
+        <ion-card-subtitle>Datos Personales</ion-card-subtitle>
+        <ion-card-title>Formulario de Registro</ion-card-title>
+      </ion-card-header>
+
+      <ion-card-content>
+        <form (ngSubmit)="onSubmit()">
+
+          <!-- Nombre Completo -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Nombre Completo *</ion-label>
+            <ion-input
+              [(ngModel)]="formData.name"
+              name="name"
+              type="text"
+              placeholder="Ej: Daniela Morales"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Correo Electrónico -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Correo Electrónico *</ion-label>
+            <ion-input
+              [(ngModel)]="formData.email"
+              name="email"
+              type="email"
+              placeholder="daniela@ejemplo.com"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Teléfono Celular -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Teléfono Móvil *</ion-label>
+            <ion-input
+              [(ngModel)]="formData.phone"
+              name="phone"
+              type="tel"
+              placeholder="3109876543"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Contraseña -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Contraseña *</ion-label>
+            <ion-input
+              [(ngModel)]="formData.password"
+              name="password"
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Botón de Registro -->
+          <ion-button
+            expand="block"
+            type="submit"
+            class="app-btn-coffee"
+            [disabled]="loading">
+            @if (loading) {
+              <ion-spinner name="crescent"></ion-spinner>
+              <span style="margin-left: 8px;">Creando cuenta...</span>
+            } @else {
+              <span>Registrarme como Cliente</span>
+            }
+          </ion-button>
+
+        </form>
+
+        <div class="login-footer">
+          <p>¿Ya tienes una cuenta?</p>
+          <ion-button fill="clear" color="primary" routerLink="/login">
+            Iniciar Sesión
+          </ion-button>
+        </div>
+
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+</ion-content>

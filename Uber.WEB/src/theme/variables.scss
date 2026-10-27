@@ -1,0 +1,76 @@
+/**
+ * Tema Visual: Uber Black & Coffee Lounge
+ * Paleta sofisticada de negro mate, carbón profundo y acentos de café cálido/moca.
+ */
+
+:root {
+  /** Color Primario: Café Caramelo / Moca Dorado **/
+  --ion-color-primary: #c49a6c;
+  --ion-color-primary-rgb: 196, 154, 108;
+  --ion-color-primary-contrast: #121212;
+  --ion-color-primary-contrast-rgb: 18, 18, 18;
+  --ion-color-primary-shade: #ad885f;
+  --ion-color-primary-tint: #caa47b;
+
+  /** Color Secundario: Café Tostado **/
+  --ion-color-secondary: #8c6339;
+  --ion-color-secondary-rgb: 140, 99, 57;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #7b5732;
+  --ion-color-secondary-tint: #98734d;
+
+  /** Color Terciario: Espresso Oscuro **/
+  --ion-color-tertiary: #4a3525;
+  --ion-color-tertiary-rgb: 74, 53, 37;
+  --ion-color-tertiary-contrast: #f5ede6;
+  --ion-color-tertiary-contrast-rgb: 245, 237, 230;
+  --ion-color-tertiary-shade: #412f21;
+  --ion-color-tertiary-tint: #5c493b;
+
+  /** Éxito **/
+  --ion-color-success: #2dd36f;
+  --ion-color-success-rgb: 45, 211, 111;
+  --ion-color-success-contrast: #000000;
+  --ion-color-success-contrast-rgb: 0, 0, 0;
+
+  /** Advertencia **/
+  --ion-color-warning: #e5a93c;
+  --ion-color-warning-rgb: 229, 169, 60;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+
+  /** Peligro **/
+  --ion-color-danger: #eb445a;
+  --ion-color-danger-rgb: 235, 68, 90;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+
+  /** Tonos Oscuros Base **/
+  --ion-color-dark: #121212;
+  --ion-color-dark-rgb: 18, 18, 18;
+  --ion-color-dark-contrast: #f5f0eb;
+  --ion-color-dark-contrast-rgb: 245, 240, 235;
+
+  /** Tonos Claros **/
+  --ion-color-light: #24201e;
+  --ion-color-light-rgb: 36, 32, 30;
+  --ion-color-light-contrast: #f5ede6;
+  --ion-color-light-contrast-rgb: 245, 237, 230;
+
+  /** Fondos y Superficies de la App (Dark por defecto con matices café) **/
+  --ion-background-color: #121110;
+  --ion-background-color-rgb: 18, 17, 16;
+  --ion-text-color: #f5ede6;
+  --ion-text-color-rgb: 245, 237, 230;
+
+  --ion-card-background: #1c1917;
+  --ion-toolbar-background: #181513;
+  --ion-item-background: #1c1917;
+
+  /** Bordes suaves **/
+  --app-border-color: #38302b;
+  --app-coffee-accent: #c49a6c;
+  --app-coffee-dark: #27211d;
+  --app-coffee-light: #dec0a2;
+}

@@ -1,0 +1,7 @@
+{
+  "name": "Uber.WEB",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}

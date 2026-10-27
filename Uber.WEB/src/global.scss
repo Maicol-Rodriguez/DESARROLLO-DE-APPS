@@ -1,0 +1,82 @@
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/* Variables y colores de la aplicación */
+@import "./theme/variables.scss";
+
+/* Estilos globales estéticos estilo Uber Black & Coffee */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--ion-background-color);
+  color: var(--ion-text-color);
+}
+
+ion-card {
+  border-radius: 16px;
+  background: var(--ion-card-background);
+  border: 1px solid var(--app-border-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+ion-card-title {
+  color: var(--app-coffee-light);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+ion-card-subtitle {
+  color: var(--ion-color-primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.75rem;
+}
+
+ion-toolbar {
+  --border-color: var(--app-border-color);
+  border-bottom: 1px solid var(--app-border-color);
+}
+
+ion-button.app-btn-coffee {
+  --background: linear-gradient(135deg, #c49a6c 0%, #8c6339 100%);
+  --background-hover: #ad885f;
+  --color: #121110;
+  --border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  height: 48px;
+  margin-top: 16px;
+}
+
+.custom-input-item {
+  --background: #25201c;
+  --border-radius: 12px;
+  --border-color: var(--app-border-color);
+  --highlight-color-focused: var(--ion-color-primary);
+  margin-bottom: 14px;
+  border: 1px solid var(--app-border-color);
+  border-radius: 12px;
+}
+
+.brand-badge {
+  background: rgba(196, 154, 108, 0.15);
+  color: var(--app-coffee-light);
+  border: 1px solid rgba(196, 154, 108, 0.3);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}

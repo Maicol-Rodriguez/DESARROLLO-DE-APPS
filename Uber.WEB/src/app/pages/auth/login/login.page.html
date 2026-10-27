@@ -1,0 +1,103 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="dark">
+    <ion-title>
+      <span class="brand-title">UBER</span>
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding auth-content" [fullscreen]="true">
+  <div class="auth-wrapper">
+
+    <!-- Encabezado de Marca -->
+    <div class="brand-header">
+      <div class="brand-logo-badge">UBER</div>
+      <h1>Bienvenido</h1>
+      <p>Inicia sesión en tu cuenta para continuar</p>
+    </div>
+
+    <!-- Tarjeta Principal de Login -->
+    <ion-card class="auth-card">
+      <ion-card-header>
+        <ion-card-subtitle>Acceso a la Plataforma</ion-card-subtitle>
+        <ion-card-title>Iniciar Sesión</ion-card-title>
+      </ion-card-header>
+
+      <ion-card-content>
+        <form (ngSubmit)="onSubmit()">
+
+          <!-- Input Correo o Teléfono -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Correo o Teléfono</ion-label>
+            <ion-input
+              [(ngModel)]="credentials.login"
+              name="login"
+              type="text"
+              placeholder="ejemplo@correo.com o 3001234567"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Input Contraseña -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Contraseña</ion-label>
+            <ion-input
+              [(ngModel)]="credentials.password"
+              name="password"
+              type="password"
+              placeholder="Tu clave secreta"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Botón de Envío -->
+          <ion-button
+            expand="block"
+            type="submit"
+            class="app-btn-coffee"
+            [disabled]="loading">
+            @if (loading) {
+              <ion-spinner name="crescent"></ion-spinner>
+              <span style="margin-left: 8px;">Ingresando...</span>
+            } @else {
+              <span>Ingresar</span>
+            }
+          </ion-button>
+
+        </form>
+
+        <!-- Accesos rápidos de prueba -->
+        <div class="demo-section">
+          <p class="demo-title">Cuentas de prueba rápidas:</p>
+          <div class="demo-chips">
+            <ion-chip (click)="fillDemoCredentials('client')" outline color="primary">
+              <ion-label>Cliente</ion-label>
+            </ion-chip>
+            <ion-chip (click)="fillDemoCredentials('driver')" outline color="primary">
+              <ion-label>Conductor</ion-label>
+            </ion-chip>
+            <ion-chip (click)="fillDemoCredentials('admin')" outline color="primary">
+              <ion-label>Admin</ion-label>
+            </ion-chip>
+          </div>
+        </div>
+
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Enlaces de Registro -->
+    <div class="register-links">
+      <p>¿Aún no tienes una cuenta?</p>
+      <div class="links-row">
+        <ion-button fill="clear" color="primary" routerLink="/register-client">
+          Registrarse como Cliente
+        </ion-button>
+        <span class="divider">|</span>
+        <ion-button fill="clear" color="secondary" routerLink="/register-driver">
+          Registrarse como Conductor
+        </ion-button>
+      </div>
+    </div>
+
+  </div>
+</ion-content>

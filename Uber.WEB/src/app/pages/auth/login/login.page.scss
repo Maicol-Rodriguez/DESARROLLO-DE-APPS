@@ -1,0 +1,100 @@
+.auth-content {
+  --background: radial-gradient(circle at top center, #27201c 0%, #121110 70%);
+}
+
+.auth-wrapper {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 0;
+}
+
+.brand-header {
+  text-align: center;
+  margin-bottom: 24px;
+
+  .brand-logo-badge {
+    display: inline-block;
+    padding: 8px 24px;
+    background: #1e1916;
+    border: 1px solid var(--app-coffee-accent);
+    color: var(--app-coffee-accent);
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    border-radius: 30px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(196, 154, 108, 0.2);
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+    color: #f7f3ee;
+  }
+
+  p {
+    font-size: 0.95rem;
+    color: #b0a59b;
+    margin: 0;
+  }
+}
+
+.auth-card {
+  margin: 0;
+}
+
+.demo-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--app-border-color);
+  text-align: center;
+
+  .demo-title {
+    font-size: 0.8rem;
+    color: #9c9186;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .demo-chips {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+
+    ion-chip {
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+.register-links {
+  text-align: center;
+  margin-top: 24px;
+
+  p {
+    color: #9c9186;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+
+  .links-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+
+    .divider {
+      color: var(--app-border-color);
+      margin: 0 4px;
+    }
+
+    ion-button {
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+  }
+}

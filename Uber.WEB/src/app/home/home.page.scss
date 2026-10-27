@@ -1,0 +1,21 @@
+.content-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.response-box {
+  background-color: var(--ion-color-step-50, #f8f9fa);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid var(--ion-color-step-150, #e9ecef);
+}
+
+.json-viewer {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 12px;
+  max-height: 250px;
+}

@@ -1,0 +1,61 @@
+.admin-content {
+  --background: radial-gradient(circle at top center, #27201c 0%, #121110 70%);
+}
+
+.page-container {
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+.brand-title {
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--app-coffee-accent);
+}
+
+.role-tag {
+  font-size: 0.7rem;
+  background: rgba(74, 53, 37, 0.4);
+  color: var(--app-coffee-light);
+  padding: 3px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  letter-spacing: 1px;
+}
+
+.user-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  .role-badge {
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: #4a3525;
+    color: #f5ede6;
+  }
+}
+
+.status-text {
+  color: #a89d92;
+  margin-top: 6px;
+}
+
+.features-list {
+  margin-top: 16px;
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    color: #ded6cf;
+    font-size: 0.95rem;
+
+    .feature-bullet {
+      color: var(--app-coffee-accent);
+      font-size: 1.5rem;
+      margin-right: 10px;
+    }
+  }
+}

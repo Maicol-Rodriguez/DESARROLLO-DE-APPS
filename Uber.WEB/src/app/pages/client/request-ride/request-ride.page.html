@@ -1,0 +1,61 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="dark">
+    <ion-title>
+      <span class="brand-title">UBER</span>
+      <span class="role-tag">CLIENTE</span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button color="light" (click)="logout()">
+        Cerrar Sesión
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding client-content" [fullscreen]="true">
+  <div class="page-container">
+
+    <!-- Tarjeta de Bienvenida del Cliente -->
+    <ion-card class="user-card">
+      <ion-card-header>
+        <div class="user-header-row">
+          <div>
+            <ion-card-subtitle>Panel de Pasajero</ion-card-subtitle>
+            <ion-card-title>Hola, {{ currentUser?.name || 'Cliente' }}</ion-card-title>
+          </div>
+          <ion-badge color="primary" class="role-badge">Cliente</ion-badge>
+        </div>
+      </ion-card-header>
+      <ion-card-content>
+        <p>Sesión activa: <code>{{ currentUser?.email }}</code></p>
+        <p class="status-text">Tu cuenta está lista para solicitar transporte.</p>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Próximo paso: Flujo de Viaje del Cliente -->
+    <ion-card class="flow-card ion-margin-top">
+      <ion-card-header>
+        <ion-card-subtitle>Módulo Cliente</ion-card-subtitle>
+        <ion-card-title>¿A dónde vamos hoy?</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p>En la siguiente etapa implementaremos aquí el formulario para estimar tarifa con coordenadas, solicitar viaje, monitorear el viaje activo y el historial.</p>
+        <div class="features-list">
+          <div class="feature-item">
+            <span class="feature-bullet">•</span>
+            <span>Estimar tarifa según distancia y tiempo</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-bullet">•</span>
+            <span>Solicitar viaje y rastrear conductor</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-bullet">•</span>
+            <span>Historial y calificación con estrellas</span>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+</ion-content>

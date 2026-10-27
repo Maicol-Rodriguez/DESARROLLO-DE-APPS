@@ -1,0 +1,217 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="dark">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/login"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Registro de Conductor</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding auth-content" [fullscreen]="true">
+  <div class="auth-wrapper">
+
+    <div class="brand-header">
+      <div class="role-badge">CONDUCTOR</div>
+      <h1>Conduce con Uber</h1>
+      <p>Genera ingresos con tu propio vehículo y horarios flexibles</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()">
+
+      <!-- SECCIÓN 1: Datos Personales y Licencia -->
+      <ion-card class="auth-card">
+        <ion-card-header>
+          <ion-card-subtitle>Paso 1 de 2</ion-card-subtitle>
+          <ion-card-title>Datos Personales y Licencia</ion-card-title>
+        </ion-card-header>
+
+        <ion-card-content>
+          <!-- Nombre -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Nombre Completo *</ion-label>
+            <ion-input
+              [(ngModel)]="formData.name"
+              name="name"
+              type="text"
+              placeholder="Ej: Héctor Fabio"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Correo -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Correo Electrónico *</ion-label>
+            <ion-input
+              [(ngModel)]="formData.email"
+              name="email"
+              type="email"
+              placeholder="hector@ejemplo.com"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Teléfono -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Teléfono Móvil *</ion-label>
+            <ion-input
+              [(ngModel)]="formData.phone"
+              name="phone"
+              type="tel"
+              placeholder="3154567890"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Contraseña -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Contraseña *</ion-label>
+            <ion-input
+              [(ngModel)]="formData.password"
+              name="password"
+              type="password"
+              placeholder="Mínimo 6 caracteres"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Licencia de Conducción -->
+          <ion-item class="custom-input-item" lines="none">
+            <ion-label position="stacked">Número de Licencia de Conducción *</ion-label>
+            <ion-input
+              [(ngModel)]="formData.license_number"
+              name="license_number"
+              type="text"
+              placeholder="Ej: LC-88291-CO"
+              required>
+            </ion-input>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- SECCIÓN 2: Datos del Vehículo -->
+      <ion-card class="auth-card ion-margin-top">
+        <ion-card-header>
+          <ion-card-subtitle>Paso 2 de 2</ion-card-subtitle>
+          <ion-card-title>Información del Vehículo</ion-card-title>
+        </ion-card-header>
+
+        <ion-card-content>
+          <ion-grid class="ion-no-padding">
+            <ion-row>
+              <!-- Placa -->
+              <ion-col size="12" size-md="6">
+                <ion-item class="custom-input-item" lines="none">
+                  <ion-label position="stacked">Placa del Vehículo *</ion-label>
+                  <ion-input
+                    [(ngModel)]="formData.plate"
+                    name="plate"
+                    type="text"
+                    placeholder="Ej: HJK-987"
+                    required>
+                  </ion-input>
+                </ion-item>
+              </ion-col>
+
+              <!-- Color -->
+              <ion-col size="12" size-md="6">
+                <ion-item class="custom-input-item" lines="none">
+                  <ion-label position="stacked">Color del Vehículo *</ion-label>
+                  <ion-input
+                    [(ngModel)]="formData.color"
+                    name="color"
+                    type="text"
+                    placeholder="Ej: Rojo Metálico"
+                    required>
+                  </ion-input>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+
+            <ion-row>
+              <!-- Marca -->
+              <ion-col size="12" size-md="6">
+                <ion-item class="custom-input-item" lines="none">
+                  <ion-label position="stacked">Marca *</ion-label>
+                  <ion-input
+                    [(ngModel)]="formData.brand"
+                    name="brand"
+                    type="text"
+                    placeholder="Ej: Mazda, Chevrolet, Toyota"
+                    required>
+                  </ion-input>
+                </ion-item>
+              </ion-col>
+
+              <!-- Modelo -->
+              <ion-col size="12" size-md="6">
+                <ion-item class="custom-input-item" lines="none">
+                  <ion-label position="stacked">Línea / Modelo *</ion-label>
+                  <ion-input
+                    [(ngModel)]="formData.model"
+                    name="model"
+                    type="text"
+                    placeholder="Ej: Mazda 3, Onix, Corolla"
+                    required>
+                  </ion-input>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+
+            <ion-row>
+              <!-- Año -->
+              <ion-col size="12" size-md="6">
+                <ion-item class="custom-input-item" lines="none">
+                  <ion-label position="stacked">Año del Modelo *</ion-label>
+                  <ion-input
+                    [(ngModel)]="formData.year"
+                    name="year"
+                    type="number"
+                    placeholder="2024"
+                    required>
+                  </ion-input>
+                </ion-item>
+              </ion-col>
+
+              <!-- Capacidad de Pasajeros -->
+              <ion-col size="12" size-md="6">
+                <ion-item class="custom-input-item" lines="none">
+                  <ion-label position="stacked">Capacidad de Pasajeros *</ion-label>
+                  <ion-input
+                    [(ngModel)]="formData.capacity"
+                    name="capacity"
+                    type="number"
+                    placeholder="4"
+                    required>
+                  </ion-input>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+
+          <!-- Botón de Envío -->
+          <ion-button
+            expand="block"
+            type="submit"
+            class="app-btn-coffee"
+            [disabled]="loading">
+            @if (loading) {
+              <ion-spinner name="crescent"></ion-spinner>
+              <span style="margin-left: 8px;">Enviando solicitud...</span>
+            } @else {
+              <span>Completar Registro de Conductor</span>
+            }
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+    </form>
+
+    <div class="login-footer">
+      <p>¿Ya tienes una cuenta registrada?</p>
+      <ion-button fill="clear" color="primary" routerLink="/login">
+        Iniciar Sesión
+      </ion-button>
+    </div>
+
+  </div>
+</ion-content>

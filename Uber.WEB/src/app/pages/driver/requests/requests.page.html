@@ -1,0 +1,60 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="dark">
+    <ion-title>
+      <span class="brand-title">UBER</span>
+      <span class="role-tag">CONDUCTOR</span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button color="light" (click)="logout()">
+        Cerrar Sesión
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding driver-content" [fullscreen]="true">
+  <div class="page-container">
+
+    <!-- Tarjeta de Bienvenida del Conductor -->
+    <ion-card class="user-card">
+      <ion-card-header>
+        <div class="user-header-row">
+          <div>
+            <ion-card-subtitle>Panel de Conductor</ion-card-subtitle>
+            <ion-card-title>Bienvenido, {{ currentUser?.name || 'Conductor' }}</ion-card-title>
+          </div>
+          <ion-badge color="secondary" class="role-badge">Conductor</ion-badge>
+        </div>
+      </ion-card-header>
+      <ion-card-content>
+        <p>Sesión activa: <code>{{ currentUser?.email }}</code></p>
+        <p class="status-text">Tu cuenta tiene acceso al panel de solicitudes y viajes.</p>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="flow-card ion-margin-top">
+      <ion-card-header>
+        <ion-card-subtitle>Módulo Conductor</ion-card-subtitle>
+        <ion-card-title>Servicios y Disponibilidad</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p>En la Etapa 5 implementaremos aquí:</p>
+        <div class="features-list">
+          <div class="feature-item">
+            <span class="feature-bullet">•</span>
+            <span>Alternar disponibilidad (En línea / Desconectado)</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-bullet">•</span>
+            <span>Ver solicitudes entrantes y aceptar con control 409</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-bullet">•</span>
+            <span>Control de viaje: Llegada, Iniciar, Completar y GPS</span>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+</ion-content>
