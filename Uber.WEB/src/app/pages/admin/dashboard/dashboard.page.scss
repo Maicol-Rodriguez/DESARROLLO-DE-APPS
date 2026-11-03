@@ -1,10 +1,11 @@
 .admin-content {
-  --background: radial-gradient(circle at top center, #27201c 0%, #121110 70%);
+  --background: radial-gradient(circle at top center, #27201c 0%, #121110 75%);
 }
 
 .page-container {
-  max-width: 650px;
+  max-width: 700px;
   margin: 0 auto;
+  padding-bottom: 30px;
 }
 
 .brand-title {
@@ -23,39 +24,515 @@
   letter-spacing: 1px;
 }
 
-.user-header-row {
+/* Toolbar de Segmentos */
+.segment-toolbar {
+  --background: #171412;
+  border-bottom: 1px solid var(--app-border-color);
+
+  ion-segment {
+    --background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 3px;
+
+    ion-segment-button {
+      --color: #a89d92;
+      --color-checked: #121110;
+      --indicator-color: var(--app-coffee-accent);
+      --indicator-box-shadow: 0 2px 10px rgba(196, 154, 108, 0.4);
+      min-height: 42px;
+      font-weight: 600;
+      font-size: 0.82rem;
+
+      ion-icon {
+        font-size: 1.15rem;
+        margin-right: 4px;
+      }
+    }
+  }
+}
+
+.badge-pending {
+  background: #ffc409;
+  color: #121110;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+.admin-welcome {
+  margin-top: 10px;
+
+  h3 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--app-coffee-light);
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: #a89d92;
+    font-size: 0.9rem;
+  }
+}
+
+/* ===================================================================== */
+/* PESTAÑA 1: KPIS Y MÉTRICAS                                           */
+/* ===================================================================== */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+
+  .kpi-card {
+    margin: 0;
+    background: linear-gradient(145deg, #231c18 0%, #161311 100%);
+    border: 1px solid rgba(196, 154, 108, 0.2);
+
+    ion-card-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+
+      .kpi-icon-wrap {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: rgba(196, 154, 108, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--app-coffee-accent);
+        font-size: 1.6rem;
+      }
+
+      .kpi-data {
+        display: flex;
+        flex-direction: column;
+
+        .kpi-label {
+          font-size: 0.72rem;
+          color: #9e9185;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .kpi-value {
+          font-size: 1.35rem;
+          font-weight: 800;
+          color: #fff;
+          margin-top: 2px;
+
+          small {
+            font-size: 0.8rem;
+            color: var(--app-coffee-accent);
+          }
+        }
+
+        .kpi-subtext {
+          font-size: 0.7rem;
+          color: #a89d92;
+          margin-top: 2px;
+        }
+      }
+    }
+
+    &.revenue-kpi {
+      grid-column: span 2;
+      border-color: rgba(196, 154, 108, 0.45);
+
+      .kpi-icon-wrap {
+        background: rgba(45, 211, 111, 0.15);
+        color: #2dd36f;
+      }
+
+      .kpi-value {
+        font-size: 1.7rem;
+      }
+    }
+  }
+}
+
+.live-status-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  .live-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    color: #ded6cf;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    strong {
+      color: #fff;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2dd36f;
+      box-shadow: 0 0 8px rgba(45, 211, 111, 0.8);
+    }
+
+    ion-icon {
+      color: #ffc409;
+    }
+  }
+}
+
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 8px;
+
+  h3, h4 {
+    margin: 0;
+    color: var(--app-coffee-light);
+    font-weight: 700;
+  }
+
+  p {
+    margin: 2px 0 0;
+    font-size: 0.85rem;
+    color: #9e9185;
+  }
+
+  .items-count {
+    font-size: 0.8rem;
+    color: #9e9185;
+  }
+}
+
+.recent-trip-card {
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  .r-trip-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .status-badge {
+      font-size: 0.72rem;
+      padding: 4px 8px;
+      border-radius: 12px;
+    }
+  }
+
+  .trip-actors-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 10px;
+    border-radius: 10px;
+
+    .actor-col {
+      display: flex;
+      flex-direction: column;
+
+      .a-label {
+        font-size: 0.68rem;
+        color: #9e9185;
+        text-transform: uppercase;
+      }
+
+      .a-val {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #fff;
+        margin-top: 2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        &.fare-gold {
+          color: var(--app-coffee-accent);
+          font-weight: 800;
+        }
+      }
+    }
+  }
+}
+
+/* ===================================================================== */
+/* PESTAÑA 2: CONDUCTORES                                                */
+/* ===================================================================== */
+.filter-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+
+  .pill-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #a89d92;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &.pill-active {
+      background: var(--app-coffee-accent);
+      color: #121110;
+      border-color: var(--app-coffee-accent);
+    }
+  }
+}
+
+.driver-admin-card {
+  margin: 0;
+  border: 1px solid rgba(196, 154, 108, 0.25);
+
+  .d-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .d-user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .d-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--app-coffee-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #121110;
+        font-size: 1.4rem;
+      }
+    }
+
+    .driver-status-badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+  }
+
+  .driver-tech-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 10px 12px;
+    border-radius: 10px;
+
+    .tech-item {
+      display: flex;
+      flex-direction: column;
+
+      .ti-label {
+        font-size: 0.68rem;
+        color: #9e9185;
+        text-transform: uppercase;
+      }
+
+      .ti-val {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #ded6cf;
+        margin-top: 2px;
+
+        &.star-val {
+          color: #ffc409;
+        }
+      }
+
+      .plate-mini {
+        color: #fbc02d;
+        font-family: monospace;
+        font-weight: 800;
+        font-size: 0.9rem;
+      }
+    }
+  }
+
+  .admin-notes-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: #d1c7be;
+    font-size: 0.8rem;
+  }
+
+  .driver-actions-row {
+    display: flex;
+    gap: 10px;
+
+    .action-btn {
+      flex: 1;
+      height: 44px;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+  }
+}
+
+/* ===================================================================== */
+/* PESTAÑA 3: TARIFAS                                                    */
+/* ===================================================================== */
+.fares-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 
-  .role-badge {
+  h3 {
+    margin: 0;
+    color: var(--app-coffee-light);
+    font-weight: 700;
+  }
+
+  p {
+    margin: 2px 0 0;
     font-size: 0.85rem;
-    padding: 6px 14px;
-    border-radius: 20px;
-    background: #4a3525;
-    color: #f5ede6;
+    color: #9e9185;
   }
 }
 
-.status-text {
-  color: #a89d92;
-  margin-top: 6px;
+.new-fare-card {
+  margin: 0;
+  border: 1px solid var(--app-coffee-accent);
+  background: rgba(255, 255, 255, 0.02);
+
+  .coords-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+
+    .coord-item {
+      margin-bottom: 0;
+    }
+  }
 }
 
-.features-list {
-  margin-top: 16px;
+.fare-card {
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 
-  .feature-item {
+  .fare-card-header-row {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    color: #ded6cf;
-    font-size: 0.95rem;
 
-    .feature-bullet {
-      color: var(--app-coffee-accent);
-      font-size: 1.5rem;
-      margin-right: 10px;
+    .fare-active-badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 12px;
     }
+  }
+
+  .fare-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 10px 12px;
+    border-radius: 10px;
+
+    .f-spec {
+      display: flex;
+      flex-direction: column;
+
+      .fs-label {
+        font-size: 0.68rem;
+        color: #9e9185;
+        text-transform: uppercase;
+      }
+
+      .fs-val {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #fff;
+        margin-top: 2px;
+
+        &.surge-val {
+          color: #ffc409;
+        }
+      }
+    }
+  }
+}
+
+/* ===================================================================== */
+/* PESTAÑA 4: AUDITORÍA                                                  */
+/* ===================================================================== */
+.log-card {
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  .log-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .action-badge {
+      font-size: 0.75rem;
+      font-family: monospace;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .log-time {
+      font-size: 0.75rem;
+      color: #9e9185;
+    }
+  }
+
+  .log-details-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #ded6cf;
+
+    .log-user {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .log-ip code {
+      color: var(--app-coffee-accent);
+      font-size: 0.8rem;
+    }
+  }
+}
+
+.empty-list-box {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9e9185;
+
+  .empty-icon {
+    font-size: 2.8rem;
+    color: var(--app-coffee-accent);
+    margin-bottom: 8px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
   }
 }

@@ -5,56 +5,459 @@
       <span class="role-tag">ADMINISTRADOR</span>
     </ion-title>
     <ion-buttons slot="end">
-      <ion-button color="light" (click)="logout()">
+      <ion-button color="light" fill="clear" (click)="logout()">
         Cerrar Sesión
       </ion-button>
     </ion-buttons>
+  </ion-toolbar>
+
+  <!-- Barra de Segmentos del Panel de Administración -->
+  <ion-toolbar color="dark" class="segment-toolbar">
+    <ion-segment [(ngModel)]="selectedSegment" color="primary">
+      <ion-segment-button value="kpis">
+        <ion-icon name="stats-chart-outline"></ion-icon>
+        <ion-label>Métricas</ion-label>
+      </ion-segment-button>
+
+      <ion-segment-button value="drivers">
+        <ion-icon name="people-outline"></ion-icon>
+        <ion-label>
+          Conductores
+          <span *ngIf="stats?.pending_drivers" class="badge-pending">{{ stats.pending_drivers }}</span>
+        </ion-label>
+      </ion-segment-button>
+
+      <ion-segment-button value="fares">
+        <ion-icon name="cash-outline"></ion-icon>
+        <ion-label>Tarifas</ion-label>
+      </ion-segment-button>
+
+      <ion-segment-button value="logs">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <ion-label>Auditoría</ion-label>
+      </ion-segment-button>
+    </ion-segment>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding admin-content" [fullscreen]="true">
   <div class="page-container">
 
-    <!-- Tarjeta de Bienvenida del Administrador -->
-    <ion-card class="user-card">
-      <ion-card-header>
-        <div class="user-header-row">
-          <div>
-            <ion-card-subtitle>Panel de Control</ion-card-subtitle>
-            <ion-card-title>Bienvenido, {{ currentUser?.name || 'Administrador' }}</ion-card-title>
-          </div>
-          <ion-badge color="tertiary" class="role-badge">Admin</ion-badge>
-        </div>
-      </ion-card-header>
-      <ion-card-content>
-        <p>Sesión activa: <code>{{ currentUser?.email }}</code></p>
-        <p class="status-text">Tienes privilegios de administración de plataforma.</p>
-      </ion-card-content>
-    </ion-card>
+    <ion-refresher slot="fixed" (ionRefresh)="loadAllData($event)">
+      <ion-refresher-content pullingText="Desliza para actualizar datos..." refreshingSpinner="crescent"></ion-refresher-content>
+    </ion-refresher>
 
-    <ion-card class="flow-card ion-margin-top">
-      <ion-card-header>
-        <ion-card-subtitle>Módulo Admin</ion-card-subtitle>
-        <ion-card-title>Métricas y Gestión</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p>En la Etapa 6 implementaremos aquí:</p>
-        <div class="features-list">
-          <div class="feature-item">
-            <span class="feature-bullet">•</span>
-            <span>Dashboard con métricas globales y KPIs de demanda</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-bullet">•</span>
-            <span>Aprobación y suspensión de conductores</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-bullet">•</span>
-            <span>Gestión de tarifas y reportes</span>
-          </div>
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 1: KPIS Y MÉTRICAS GLOBALES DEL SISTEMA                    -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'kpis'" class="tab-content">
+      
+      <!-- Bienvenida Admin -->
+      <div class="admin-welcome ion-margin-bottom">
+        <h3>Panel de Control Global</h3>
+        <p>Métricas y estado de la plataforma en tiempo real</p>
+      </div>
+
+      <!-- Cuadrícula de KPIs Principales -->
+      <div class="kpi-grid">
+        <!-- KPI 1: Ingresos -->
+        <ion-card class="kpi-card revenue-kpi">
+          <ion-card-content>
+            <div class="kpi-icon-wrap">
+              <ion-icon name="wallet-outline"></ion-icon>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Ingresos Totales</span>
+              <span class="kpi-value">${{ (stats?.total_revenue || 0) | number:'1.0-0' }} <small>COP</small></span>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- KPI 2: Pasajeros -->
+        <ion-card class="kpi-card clients-kpi">
+          <ion-card-content>
+            <div class="kpi-icon-wrap">
+              <ion-icon name="person-outline"></ion-icon>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Pasajeros Activos</span>
+              <span class="kpi-value">{{ stats?.total_clients || 0 }}</span>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- KPI 3: Conductores -->
+        <ion-card class="kpi-card drivers-kpi">
+          <ion-card-content>
+            <div class="kpi-icon-wrap">
+              <ion-icon name="car-sport-outline"></ion-icon>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Conductores Registrados</span>
+              <span class="kpi-value">{{ stats?.total_drivers || 0 }}</span>
+              <span class="kpi-subtext">{{ stats?.approved_drivers || 0 }} aprobados • {{ stats?.pending_drivers || 0 }} pendientes</span>
+            </div>
+          </ion-card-content>
+        </ion-card>
+
+        <!-- KPI 4: Viajes Completados -->
+        <ion-card class="kpi-card trips-kpi">
+          <ion-card-content>
+            <div class="kpi-icon-wrap">
+              <ion-icon name="checkmark-done-outline"></ion-icon>
+            </div>
+            <div class="kpi-data">
+              <span class="kpi-label">Viajes Finalizados</span>
+              <span class="kpi-value">{{ stats?.completed_trips || 0 }}</span>
+              <span class="kpi-subtext">{{ stats?.cancelled_trips || 0 }} cancelados</span>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <!-- Barra de Estado en Vivo -->
+      <div class="live-status-bar ion-margin-top ion-margin-bottom">
+        <div class="live-pill active-trips">
+          <span class="live-dot"></span>
+          <span>Viajes en curso ahora: <strong>{{ stats?.active_trips || 0 }}</strong></span>
         </div>
-      </ion-card-content>
-    </ion-card>
+        <div class="live-pill pending-reqs">
+          <ion-icon name="time-outline"></ion-icon>
+          <span>Solicitudes en espera: <strong>{{ stats?.pending_requests || 0 }}</strong></span>
+        </div>
+      </div>
+
+      <!-- Viajes Recientes -->
+      <div class="recent-trips-section ion-margin-top">
+        <div class="section-title-row">
+          <h4>Viajes Recientes</h4>
+          <span class="items-count">{{ recentTrips.length }} registros</span>
+        </div>
+
+        <div *ngIf="recentTrips.length === 0" class="empty-list-box">
+          <p>No hay viajes recientes registrados en el sistema.</p>
+        </div>
+
+        <ion-card *ngFor="let trip of recentTrips" class="recent-trip-card ion-margin-bottom">
+          <ion-card-header>
+            <div class="r-trip-header">
+              <div>
+                <ion-card-subtitle>{{ trip.created_at | date:'mediumDate' }} • {{ trip.created_at | date:'shortTime' }}</ion-card-subtitle>
+                <ion-card-title>Viaje #{{ trip.id }}</ion-card-title>
+              </div>
+              <ion-badge [color]="formatTripStatus(trip.status).color" class="status-badge">
+                {{ formatTripStatus(trip.status).label }}
+              </ion-badge>
+            </div>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="trip-actors-grid">
+              <div class="actor-col">
+                <span class="a-label">Pasajero</span>
+                <span class="a-val">{{ trip.client?.name || 'Cliente' }}</span>
+              </div>
+              <div class="actor-col">
+                <span class="a-label">Conductor</span>
+                <span class="a-val">{{ trip.driver?.user?.name || 'Conductor' }}</span>
+              </div>
+              <div class="actor-col">
+                <span class="a-label">Tarifa Final</span>
+                <span class="a-val fare-gold">${{ (trip.final_fare || trip.estimated_fare) | number:'1.0-0' }} COP</span>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 2: GESTIÓN Y APROBACIÓN DE CONDUCTORES                     -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'drivers'" class="tab-content">
+      
+      <div class="section-title-row ion-margin-bottom">
+        <div>
+          <h3>Conductores</h3>
+          <p>Gestión de licencias, vehículos y aprobaciones</p>
+        </div>
+      </div>
+
+      <!-- Segmento de Filtro de Conductores -->
+      <div class="filter-pills ion-margin-bottom">
+        <button class="pill-btn" [class.pill-active]="driverFilter === 'all'" (click)="setDriverFilter('all')">
+          Todos ({{ adminService.drivers().length }})
+        </button>
+        <button class="pill-btn" [class.pill-active]="driverFilter === 'pending'" (click)="setDriverFilter('pending')">
+          Pendientes ({{ stats?.pending_drivers || 0 }})
+        </button>
+        <button class="pill-btn" [class.pill-active]="driverFilter === 'approved'" (click)="setDriverFilter('approved')">
+          Aprobados
+        </button>
+        <button class="pill-btn" [class.pill-active]="driverFilter === 'rejected'" (click)="setDriverFilter('rejected')">
+          Rechazados
+        </button>
+      </div>
+
+      <!-- Lista de Conductores -->
+      <div *ngIf="drivers.length === 0" class="empty-list-box">
+        <ion-icon name="people-outline" class="empty-icon"></ion-icon>
+        <p>No se encontraron conductores con el filtro seleccionado.</p>
+      </div>
+
+      <div *ngIf="drivers.length > 0" class="drivers-list">
+        <ion-card *ngFor="let d of drivers" class="driver-admin-card ion-margin-bottom">
+          <ion-card-header>
+            <div class="d-card-header">
+              <div class="d-user-info">
+                <div class="d-avatar">
+                  <ion-icon name="person-outline"></ion-icon>
+                </div>
+                <div>
+                  <ion-card-title>{{ d.user.name }}</ion-card-title>
+                  <ion-card-subtitle>{{ d.user.email }} • Tel: {{ d.user.phone || 'S/N' }}</ion-card-subtitle>
+                </div>
+              </div>
+              <ion-badge [color]="formatDriverStatus(d.approval_status).color" class="driver-status-badge">
+                {{ formatDriverStatus(d.approval_status).label }}
+              </ion-badge>
+            </div>
+          </ion-card-header>
+
+          <ion-card-content>
+            <!-- Ficha Técnica -->
+            <div class="driver-tech-grid">
+              <div class="tech-item">
+                <span class="ti-label">Licencia</span>
+                <span class="ti-val">{{ d.license_number }}</span>
+              </div>
+              <div class="tech-item">
+                <span class="ti-label">Calificación</span>
+                <span class="ti-val star-val">⭐ {{ (d.rating_average || 5.0) | number:'1.2-2' }} ({{ d.ratings_count }} votos)</span>
+              </div>
+              <div *ngIf="d.vehicles && d.vehicles.length > 0" class="tech-item">
+                <span class="ti-label">Vehículo</span>
+                <span class="ti-val">{{ d.vehicles[0].brand }} {{ d.vehicles[0].model }} ({{ d.vehicles[0].year }})</span>
+              </div>
+              <div *ngIf="d.vehicles && d.vehicles.length > 0" class="tech-item">
+                <span class="ti-label">Placa</span>
+                <span class="plate-mini">{{ d.vehicles[0].plate }}</span>
+              </div>
+            </div>
+
+            <!-- Notas Administrativas si existen -->
+            <div *ngIf="d.admin_notes" class="admin-notes-box ion-margin-top">
+              <ion-icon name="document-text-outline"></ion-icon>
+              <span>Nota: {{ d.admin_notes }}</span>
+            </div>
+
+            <!-- Botones de Acción de Aprobación -->
+            <div class="driver-actions-row ion-margin-top">
+              <!-- Si está pendiente -->
+              <ng-container *ngIf="d.approval_status === 'pending'">
+                <ion-button
+                  color="success"
+                  class="action-btn"
+                  (click)="approveDriver(d)"
+                  [disabled]="isProcessingAction()"
+                >
+                  <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+                  Aprobar Conductor
+                </ion-button>
+                <ion-button
+                  color="danger"
+                  fill="outline"
+                  class="action-btn"
+                  (click)="rejectDriver(d)"
+                  [disabled]="isProcessingAction()"
+                >
+                  <ion-icon slot="start" name="close-circle-outline"></ion-icon>
+                  Rechazar
+                </ion-button>
+              </ng-container>
+
+              <!-- Si ya está aprobado -->
+              <ng-container *ngIf="d.approval_status === 'approved'">
+                <ion-button
+                  color="danger"
+                  fill="outline"
+                  size="small"
+                  (click)="rejectDriver(d)"
+                  [disabled]="isProcessingAction()"
+                >
+                  <ion-icon slot="start" name="close-circle-outline"></ion-icon>
+                  Suspender / Rechazar
+                </ion-button>
+              </ng-container>
+
+              <!-- Si fue rechazado -->
+              <ng-container *ngIf="d.approval_status === 'rejected'">
+                <ion-button
+                  color="success"
+                  fill="outline"
+                  size="small"
+                  (click)="approveDriver(d)"
+                  [disabled]="isProcessingAction()"
+                >
+                  <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+                  Re-aprobar Conductor
+                </ion-button>
+              </ng-container>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 3: GESTIÓN DE TARIFAS URBANAS                              -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'fares'" class="tab-content">
+      
+      <div class="fares-header ion-margin-bottom">
+        <div>
+          <h3>Tarifas Urbanas</h3>
+          <p>Configuración de precios y multiplicadores dinámicos</p>
+        </div>
+        <ion-button color="primary" class="app-btn-coffee" (click)="showNewFareForm.set(!showNewFareForm())">
+          <ion-icon slot="start" [name]="showNewFareForm() ? 'close-circle-outline' : 'add-circle-outline'"></ion-icon>
+          {{ showNewFareForm() ? 'Cancelar' : 'Nueva Tarifa' }}
+        </ion-button>
+      </div>
+
+      <!-- Formulario para Crear Nueva Tarifa -->
+      <ion-card *ngIf="showNewFareForm()" class="new-fare-card ion-margin-bottom">
+        <ion-card-header>
+          <ion-card-subtitle>Configuración de Precios</ion-card-subtitle>
+          <ion-card-title>Crear Nueva Tarifa</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item lines="none" class="custom-input-item">
+            <ion-label position="stacked">Nombre de la Tarifa</ion-label>
+            <ion-input [(ngModel)]="newFare.name" placeholder="Ej: Tarifa Nocturna"></ion-input>
+          </ion-item>
+
+          <div class="coords-row">
+            <ion-item lines="none" class="custom-input-item coord-item">
+              <ion-label position="stacked">Tarifa Base (COP)</ion-label>
+              <ion-input type="number" [(ngModel)]="newFare.base_fare" placeholder="4500"></ion-input>
+            </ion-item>
+            <ion-item lines="none" class="custom-input-item coord-item">
+              <ion-label position="stacked">Tarifa Mínima (COP)</ion-label>
+              <ion-input type="number" [(ngModel)]="newFare.minimum_fare" placeholder="8000"></ion-input>
+            </ion-item>
+          </div>
+
+          <div class="coords-row">
+            <ion-item lines="none" class="custom-input-item coord-item">
+              <ion-label position="stacked">Valor por Km (COP)</ion-label>
+              <ion-input type="number" [(ngModel)]="newFare.price_per_km" placeholder="1500"></ion-input>
+            </ion-item>
+            <ion-item lines="none" class="custom-input-item coord-item">
+              <ion-label position="stacked">Valor por Minuto (COP)</ion-label>
+              <ion-input type="number" [(ngModel)]="newFare.price_per_minute" placeholder="350"></ion-input>
+            </ion-item>
+          </div>
+
+          <ion-item lines="none" class="custom-input-item">
+            <ion-label position="stacked">Multiplicador Dinámico (Surge)</ion-label>
+            <ion-input type="number" step="0.1" [(ngModel)]="newFare.surge_multiplier" placeholder="1.2"></ion-input>
+          </ion-item>
+
+          <ion-button expand="block" class="app-btn-coffee ion-margin-top" (click)="submitNewFare()" [disabled]="isProcessingAction()">
+            <ion-spinner *ngIf="isProcessingAction()" name="crescent" slot="start"></ion-spinner>
+            <ion-icon *ngIf="!isProcessingAction()" name="checkmark-circle-outline" slot="start"></ion-icon>
+            Guardar y Activar Tarifa
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Lista de Tarifas Configurada -->
+      <div class="fares-list">
+        <ion-card *ngFor="let fare of fares" class="fare-card ion-margin-bottom">
+          <ion-card-header>
+            <div class="fare-card-header-row">
+              <div>
+                <ion-card-subtitle>ID #{{ fare.id }}</ion-card-subtitle>
+                <ion-card-title>{{ fare.name }}</ion-card-title>
+              </div>
+              <ion-badge [color]="fare.active ? 'success' : 'medium'" class="fare-active-badge">
+                {{ fare.active ? 'Activa' : 'Inactiva' }}
+              </ion-badge>
+            </div>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="fare-specs-grid">
+              <div class="f-spec">
+                <span class="fs-label">Tarifa Base</span>
+                <span class="fs-val">${{ fare.base_fare | number:'1.0-0' }}</span>
+              </div>
+              <div class="f-spec">
+                <span class="fs-label">Por Km</span>
+                <span class="fs-val">${{ fare.price_per_km | number:'1.0-0' }}</span>
+              </div>
+              <div class="f-spec">
+                <span class="fs-label">Por Minuto</span>
+                <span class="fs-val">${{ fare.price_per_minute | number:'1.0-0' }}</span>
+              </div>
+              <div class="f-spec">
+                <span class="fs-label">Tarifa Mínima</span>
+                <span class="fs-val">${{ fare.minimum_fare | number:'1.0-0' }}</span>
+              </div>
+              <div class="f-spec">
+                <span class="fs-label">Multiplicador</span>
+                <span class="fs-val surge-val">{{ fare.surge_multiplier }}x</span>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 4: AUDITORÍA Y REGISTROS DE SEGURIDAD (RF-ADM-15)          -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'logs'" class="tab-content">
+      
+      <div class="section-title-row ion-margin-bottom">
+        <div>
+          <h3>Registro de Auditoría</h3>
+          <p>Trazabilidad cronológica de accesos y seguridad</p>
+        </div>
+        <span class="items-count">{{ auditLogs.length }} eventos</span>
+      </div>
+
+      <div *ngIf="auditLogs.length === 0" class="empty-list-box">
+        <p>No hay eventos de auditoría registrados.</p>
+      </div>
+
+      <div *ngIf="auditLogs.length > 0" class="logs-list">
+        <ion-card *ngFor="let log of auditLogs" class="log-card ion-margin-bottom">
+          <ion-card-content>
+            <div class="log-top-row">
+              <ion-badge color="tertiary" class="action-badge">{{ log.action }}</ion-badge>
+              <span class="log-time">{{ log.created_at | date:'medium' }}</span>
+            </div>
+
+            <div class="log-details-row ion-margin-top">
+              <div class="log-user">
+                <ion-icon name="person-outline"></ion-icon>
+                <span>{{ log.user?.name || 'Sistema' }} ({{ log.user?.email || 'N/A' }})</span>
+              </div>
+              <div *ngIf="log.ip_address" class="log-ip">
+                <code>IP: {{ log.ip_address }}</code>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+    </div>
 
   </div>
 </ion-content>

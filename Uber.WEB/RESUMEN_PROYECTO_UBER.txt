@@ -1,0 +1,217 @@
+================================================================================
+                    RESUMEN DE TRABAJO - PROYECTO FRONTEND UBER
+             Stack: Ionic 9 + Angular 22 (Standalone Components) + TypeScript
+================================================================================
+Fecha: 3 de Noviembre de 2026
+Estudiante / Proyecto: Desarrollo de Aplicaciones Web - App Tipo Uber
+Backend: Laravel 12 + JWT + PostgreSQL (Servidor: http://20.20.1.51:8000/api) [IP actualizada]
+Tema Gráfico: Uber Black & Coffee Lounge (Negro suave y Café cálido)
+================================================================================
+
+1. ANÁLISIS Y LECTURA DE REQUERIMIENTOS
+--------------------------------------------------------------------------------
+- Lectura íntegra de la especificación técnica en API_DOCUMENTATION.md.
+- Identificación de los 3 roles del sistema:
+  * client: Pasajero (estimar tarifa, pedir viaje, monitorear activo, cancelar, historial, calificar).
+  * driver: Conductor (disponibilidad, ver solicitudes, aceptar con control 409, arrive, start, complete, GPS).
+  * admin: Administrador (dashboard KPIs, aprobar/rechazar conductores, tarifas, auditoría).
+- Diagnóstico de conexión: se verificó que el servidor Laravel responde en 20.20.1.157:8000, 
+  detectando que el servicio PostgreSQL en el host del profesor arrojó "Connection refused (127.0.0.1:5432)",
+  un detalle del backend a tener presente.
+
+
+2. ETAPA 1: CONFIGURACIÓN BASE Y CLIENTE HTTP
+--------------------------------------------------------------------------------
+Archivos creados / modificados:
+- src/environments/environment.ts: URL base configurada a http://20.20.1.157:8000/api.
+- src/environments/environment.prod.ts: Configuración para producción.
+- src/app/core/services/ui.service.ts: Servicio para mostrar notificaciones flotantes (Toasts),
+  ventanas de alerta (Alerts) y barras de carga (Loading) usando controladores de Ionic.
+- src/app/core/interceptors/auth.interceptor.ts: Interceptor funcional HttpInterceptorFn que:
+  * Agrega headers "Accept: application/json".
+  * Inyecta el encabezado "Authorization: Bearer <token>" de forma automática a cada petición.
+  * Captura errores HTTP globalmente:
+    - 401 (No autorizado / token expirado): Limpia localStorage y redirige a /login.
+    - 400 (Regla de negocio inválida): Muestra mensaje de la API.
+    - 403 (Acceso denegado / cuenta pendiente de aprobación): Alerta al usuario.
+    - 409 (Conflicto de concurrencia al tomar viaje): Notifica que el servicio ya fue tomado.
+    - 422 (Error de validación de Laravel): Muestra los campos inválidos en pantalla.
+    - 0 (Error de conexión / servidor caído / CORS): Mensaje amigable de fallo de red.
+- src/main.ts: Registro de provideHttpClient(withInterceptors([authInterceptor])).
+- src/app/home/home.page (.ts, .html, .scss): Pantalla de prueba con botones para testear 
+  la conexión a la API y la intercepción de errores en vivo.
+
+
+3. DISEÑO VISUAL: PALETA NEGRO SUAVE Y CAFÉ (UBER BLACK & COFFEE)
+--------------------------------------------------------------------------------
+Archivos modificados:
+- src/theme/variables.scss:
+  * Primario: Café caramelo / moca dorado (#c49a6c).
+  * Secundario: Café tostado (#8c6339).
+  * Terciario / Acentos: Espresso oscuro (#4a3525).
+  * Fondos: Negro mate profundo (#121110) y carbón elegante (#1c1917).
+  * Textos: Blanco cálido marfil (#f5ede6) y tonos crema suaves.
+- src/global.scss:
+  * Estilizado de tarjetas con bordes suaves y sombras elegantes.
+  * Estilizado de botones degradados de alta gama (.app-btn-coffee).
+  * Inputs con fondo oscuro (#25201c) y bordes sutiles para experiencia móvil/web.
+
+
+4. ETAPA 2: MÓDULO DE AUTENTICACIÓN
+--------------------------------------------------------------------------------
+Archivos creados / modificados:
+- src/app/core/models/auth.models.ts:
+  * Interfaces TypeScript estrictas: User, UserRole, LoginRequest, RegisterClientRequest, 
+    RegisterDriverRequest, AuthResponse, MeResponse.
+- src/app/core/services/auth.service.ts:
+  * Métodos de autenticación: login(), registerClient(), registerDriver(), getMe(), logout().
+  * Manejo reactivo de estado con Angular Signals (currentUser, token).
+  * Persistencia segura del token JWT y objeto user en localStorage.
+  * Métodos auxiliares: isAuthenticated(), getUserRole(), clearSession().
+- src/app/pages/auth/login/ (login.page.ts, .html, .scss):
+  * Pantalla de login elegante con input dual (correo o celular) y contraseña.
+  * Chips de prueba rápida para autocompletar credenciales de Cliente, Conductor y Admin con 1 clic.
+  * Enlaces a registro de cliente y conductor.
+- src/app/pages/auth/register-client/ (register-client.page.ts, .html, .scss):
+  * Formulario de registro para pasajeros: nombre, correo, móvil, clave.
+- src/app/pages/auth/register-driver/ (register-driver.page.ts, .html, .scss):
+  * Formulario organizado en 2 pasos: datos personales con licencia (license_number)
+    y datos completos del vehículo (placa, marca, modelo, año, capacidad, color).
+
+
+5. ETAPA 3: GUARDS DE RUTAS Y REDIRECCIÓN POR ROL
+--------------------------------------------------------------------------------
+Archivos creados / modificados:
+- src/app/core/guards/auth.guard.ts:
+  * Protege rutas privadas. Si no hay token, bloquea el acceso, muestra un Toast 
+    informativo y redirige al /login.
+- src/app/core/guards/role.guard.ts:
+  * Control de acceso basado en roles (RBAC). Compara el rol del usuario con 
+    expectedRoles. Si un cliente intenta ingresar a rutas de conductor o admin (o viceversa),
+    muestra alerta de acceso denegado y lo devuelve a su panel correspondiente.
+- src/app/pages/client/request-ride/ (request-ride.page.ts, .html, .scss):
+  * Panel principal del Cliente con saludo, rol, tarjeta informativa y botón "Cerrar Sesión".
+- src/app/pages/driver/requests/ (requests.page.ts, .html, .scss):
+  * Panel principal del Conductor con estado de cuenta y botón "Cerrar Sesión".
+- src/app/pages/admin/dashboard/ (dashboard.page.ts, .html, .scss):
+  * Panel principal del Administrador con bienvenida y botón "Cerrar Sesión".
+- src/app/app.routes.ts:
+  * Enrutamiento protegido conectando canActivate: [authGuard, roleGuard] para cada rol.
+  * Redirección inicial hacia /login.
+
+
+6. ETAPA 4: MÓDULO CLIENTE (PASAJERO) COMPLETO
+--------------------------------------------------------------------------------
+Archivos creados / modificados:
+- src/environments/environment.ts y environment.prod.ts:
+  * IP actualizada a http://20.20.1.51:8000/api.
+- src/app/core/models/client.models.ts:
+  * Interfaces completas: EstimateFareRequest, FareEstimate, FareBreakdown,
+    CreateRideRequest, RideRequestItem, ActiveTripData, DriverActiveInfo,
+    VehicleActiveInfo, CancelRideRequest, TripRatingRequest, TripHistoryItem,
+    TripsHistoryResponse.
+- src/app/core/services/ui.service.ts:
+  * Métodos añadidos: showConfirm() y showPrompt() para captura interactiva de motivos de cancelación.
+- src/app/core/services/client.service.ts:
+  * estimateFare() -> POST /client/estimate-fare
+  * createRideRequest() -> POST /client/ride-requests
+  * getActiveRide() -> GET /client/active
+  * cancelRide() -> POST /client/cancel/{id}
+  * getTrips() -> GET /client/trips?page=N
+  * rateTrip() -> POST /client/trips/{id}/rating
+  * Sondeo reactivo en segundo plano: startPolling(4000) y stopPolling() con Signals.
+- src/app/pages/client/request-ride/ (request-ride.page.ts, .html, .scss):
+  * Vista con 3 pestañas principales:
+    1. "Solicitar": Formulario de origen y destino con chips de rutas demo de 1 clic,
+       botón GPS del dispositivo, cálculo de tarifa estimada con desglose completo y confirmación de viaje.
+    2. "En Curso": Monitoreo en tiempo real con animación de radar de búsqueda (requested),
+       tarjeta del conductor (nombre, rating, teléfono con llamada directa), vehículo (marca, placa colombiana),
+       GPS en vivo del conductor, cancelación con motivo y calificación interactiva si el estado es completed.
+    3. "Historial": Pull-to-refresh para actualizar viajes, badges de estado, desglose de tarifa,
+       visualización de estrellas existentes o formulario inline para calificar viajes pendientes.
+- angular.json:
+  * Ajuste de presupuesto anyComponentStyle a 25kb/50kb para soportar estilos ricos de componentes.
+
+
+7. VERIFICACIÓN Y COMPILACIÓN DE CÓDIGO
+--------------------------------------------------------------------------------
+- Diagnóstico de conectividad: IP 20.20.1.51 puerto 8000 accesible y validado contra el backend.
+- Verificación de tipos TypeScript: 0 errores (tsc -p tsconfig.app.json --noEmit).
+- Compilación de Angular / Ionic: Exitosa sin errores (ng build -> Output location: www).
+
+
+8. ETAPA 5: MÓDULO CONDUCTOR COMPLETO
+--------------------------------------------------------------------------------
+Archivos creados / modificados:
+- src/app/core/models/driver.models.ts:
+  * Interfaces TypeScript estrictas: DriverAvailabilityStatus, DriverApprovalStatus,
+    DriverVehicle, DriverProfile, DriverRideRequest, DriverTrip, AcceptTripResponse,
+    CompleteTripRequest, DriverLocationRequest, DriverLocationResponse.
+- src/app/core/services/driver.service.ts:
+  * setAvailability(status) -> PUT /driver/availability (available / unavailable).
+  * getRideRequests() -> GET /driver/ride-requests (solicitudes pendientes en tiempo real).
+  * acceptRideRequest(id) -> POST /driver/ride-requests/{id}/accept (con protección atómica 409 Conflict - RNF-05).
+  * registerArrival(tripId) -> POST /driver/trips/{tripId}/arrive (marca llegada al origen).
+  * startTrip(tripId) -> POST /driver/trips/{tripId}/start (inicia recorrido hacia destino).
+  * completeTrip(tripId, data) -> POST /driver/trips/{tripId}/complete (liquida tarifa con distancia y minutos reales).
+  * updateLocation(loc) -> POST /driver/location (reporte de telemetría GPS).
+  * Sondeo periódico de solicitudes pendientes: startRequestsPolling(4000).
+  * Transmisión continua de telemetría GPS cada 8 segundos: startGpsTracking(8000).
+  * Persistencia segura del viaje activo en localStorage para resiliencia ante recargas.
+- src/app/pages/driver/requests/ (requests.page.ts, .html, .scss):
+  * Vista completa organizada en 3 pestañas:
+    1. "Solicitudes": Barra de disponibilidad (toggle online/offline), aviso de aprobación,
+       perfil rápido (licencia, estrellas, placa), radar de búsqueda en espera de viajes,
+       tarjetas de solicitudes con precio COP, ruta y botón "Aceptar Servicio".
+    2. "Servicio Activo": Stepper interactivo de 4 pasos (Asignado ➔ Llegada ➔ En Ruta ➔ Liquidado),
+       tarjeta del pasajero con botón de llamada telefónica directa, formulario de liquidación
+       con inputs de distancia y tiempo real, y pantalla de confirmación de pago.
+    3. "Vehículo & GPS": Matrícula estilo placa colombiana con detalles del auto,
+       panel de telemetría GPS con toggle de transmisión continua y botón de reporte manual.
+
+
+9. ETAPA 6: MÓDULO ADMINISTRADOR COMPLETO
+--------------------------------------------------------------------------------
+Archivos creados / modificados:
+- src/app/core/models/admin.models.ts:
+  * Interfaces TypeScript completas: AdminDashboardStats, AdminTripItem,
+    AdminDashboardResponse, AdminDriverItem, AdminDriversResponse, DriverApprovalRequest,
+    AdminFareItem, AdminFaresResponse, CreateFareRequest, AdminAuditLogItem,
+    AdminAuditLogsResponse.
+- src/app/core/services/admin.service.ts:
+  * getDashboard() -> GET /admin/dashboard (KPIs globales, ingresos, viajes recientes).
+  * getDrivers(status) -> GET /admin/drivers (con filtro por estado de aprobación).
+  * updateDriverApproval(driverId, data) -> PATCH /admin/drivers/{id}/approval (aprobar, rechazar, suspender).
+  * getFares() -> GET /admin/fares (consulta tarifas urbanas).
+  * createFare(data) -> POST /admin/fares (creación de nuevas tarifas y multiplicadores dinámicos).
+  * getAuditLogs() -> GET /admin/audit-logs (registros cronológicos de seguridad RF-ADM-15).
+- src/app/pages/admin/dashboard/ (dashboard.page.ts, .html, .scss):
+  * Vista integral organizada en 4 pestañas:
+    1. "Métricas": 4 tarjetas KPI principales (Ingresos Totales en COP, Pasajeros, Conductores
+       aprobados/pendientes, Viajes completados/cancelados), barra en vivo de viajes activos
+       y solicitudes en espera, y listado de viajes recientes con tarifas.
+    2. "Conductores": Filtros rápidos (Todos, Pendientes con badge numérico, Aprobados, Rechazados),
+       fichas de conductores con datos de usuario, licencia, calificación y vehículo,
+       botones directos de acción: "Aprobar Conductor" y "Rechazar / Suspender" con captura de notas.
+    3. "Tarifas": Listado de tarifas activas e inactivas y formulario desplegable para crear
+       nuevas tarifas con tarifa base, $/km, $/min, tarifa mínima y multiplicador dinámico.
+    4. "Auditoría": Registro histórico de eventos de seguridad (LOGIN, LOGOUT, REGISTER)
+       con nombre de usuario, rol, IP de origen y fecha/hora.
+
+
+10. ESTADO FINAL DEL PROYECTO
+--------------------------------------------------------------------------------
+- Diagnóstico de conectividad: IP 20.20.1.51 puerto 8000 activo y verificado en todos los endpoints.
+- Verificación de tipos TypeScript: 0 errores (tsc -p tsconfig.app.json --noEmit).
+- Compilación de producción Angular / Ionic: Exitosa sin errores (ng build -> Output location: www).
+- Todas las etapas completadas:
+  * Etapa 1: Arquitectura base, Red, Interceptor JWT y Manejo Global de Errores.
+  * Etapa 2: Módulo de Autenticación (Login, Registro Pasajero, Registro Conductor en 2 pasos).
+  * Etapa 3: Guards RBAC y Enrutamiento Protegido.
+  * Etapa 4: Módulo Pasajero / Cliente (Estimación por GPS, Viaje Activo con Polling, Cancelación, Historial y Calificación).
+  * Etapa 5: Módulo Conductor (Disponibilidad, Solicitudes con bloqueo 409, Stepper de 4 pasos arrive/start/complete y Telemetría GPS).
+  * Etapa 6: Módulo Administrador (Dashboard KPIs, Aprobación de Conductores, Tarifas y Auditoría).
+
+================================================================================
+                   FIN DEL RESUMEN - UBER FRONTEND WEB APP
+================================================================================

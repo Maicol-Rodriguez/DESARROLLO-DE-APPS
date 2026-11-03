@@ -2,60 +2,559 @@
   <ion-toolbar color="dark">
     <ion-title>
       <span class="brand-title">UBER</span>
-      <span class="role-tag">CLIENTE</span>
+      <span class="role-tag">PASAJERO</span>
     </ion-title>
     <ion-buttons slot="end">
-      <ion-button color="light" (click)="logout()">
+      <ion-button color="light" fill="clear" (click)="logout()">
         Cerrar Sesión
       </ion-button>
     </ion-buttons>
+  </ion-toolbar>
+
+  <!-- Barra de Segmentos Principal -->
+  <ion-toolbar color="dark" class="segment-toolbar">
+    <ion-segment [(ngModel)]="selectedSegment" color="primary">
+      <ion-segment-button value="request">
+        <ion-icon name="car-sport-outline"></ion-icon>
+        <ion-label>Solicitar</ion-label>
+      </ion-segment-button>
+
+      <ion-segment-button value="active">
+        <ion-icon name="pulse-outline"></ion-icon>
+        <ion-label>
+          En Curso
+          <span *ngIf="hasActiveRide" class="active-dot"></span>
+        </ion-label>
+      </ion-segment-button>
+
+      <ion-segment-button value="history">
+        <ion-icon name="time-outline"></ion-icon>
+        <ion-label>Historial</ion-label>
+      </ion-segment-button>
+    </ion-segment>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding client-content" [fullscreen]="true">
   <div class="page-container">
 
-    <!-- Tarjeta de Bienvenida del Cliente -->
-    <ion-card class="user-card">
-      <ion-card-header>
-        <div class="user-header-row">
-          <div>
-            <ion-card-subtitle>Panel de Pasajero</ion-card-subtitle>
-            <ion-card-title>Hola, {{ currentUser?.name || 'Cliente' }}</ion-card-title>
-          </div>
-          <ion-badge color="primary" class="role-badge">Cliente</ion-badge>
-        </div>
-      </ion-card-header>
-      <ion-card-content>
-        <p>Sesión activa: <code>{{ currentUser?.email }}</code></p>
-        <p class="status-text">Tu cuenta está lista para solicitar transporte.</p>
-      </ion-card-content>
-    </ion-card>
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 1: SOLICITAR VIAJE & ESTIMAR TARIFA                         -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'request'" class="tab-content">
+      
+      <!-- Saludo y Bienvenida -->
+      <div class="welcome-box ion-margin-bottom">
+        <h3>Hola, {{ currentUser?.name || 'Pasajero' }} 👋</h3>
+        <p>¿Hacia dónde te diriges hoy en Uber Black?</p>
+      </div>
 
-    <!-- Próximo paso: Flujo de Viaje del Cliente -->
-    <ion-card class="flow-card ion-margin-top">
-      <ion-card-header>
-        <ion-card-subtitle>Módulo Cliente</ion-card-subtitle>
-        <ion-card-title>¿A dónde vamos hoy?</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p>En la siguiente etapa implementaremos aquí el formulario para estimar tarifa con coordenadas, solicitar viaje, monitorear el viaje activo y el historial.</p>
-        <div class="features-list">
-          <div class="feature-item">
-            <span class="feature-bullet">•</span>
-            <span>Estimar tarifa según distancia y tiempo</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-bullet">•</span>
-            <span>Solicitar viaje y rastrear conductor</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-bullet">•</span>
-            <span>Historial y calificación con estrellas</span>
-          </div>
+      <!-- Rutas Demo Rápidas (Chips de 1 Clic) -->
+      <div class="demo-chips-section ion-margin-bottom">
+        <span class="chips-label">Rutas de prueba rápida:</span>
+        <div class="chips-scroll">
+          <ion-chip *ngFor="let route of demoRoutes" (click)="applyDemoRoute(route)" color="primary" [outline]="true">
+            <ion-icon name="navigate-outline"></ion-icon>
+            <ion-label>{{ route.label }}</ion-label>
+          </ion-chip>
         </div>
-      </ion-card-content>
-    </ion-card>
+      </div>
+
+      <!-- Formulario de Origen -->
+      <ion-card class="form-card">
+        <ion-card-header>
+          <div class="card-title-row">
+            <div class="icon-bubble origin-bubble">
+              <ion-icon name="location-outline"></ion-icon>
+            </div>
+            <div>
+              <ion-card-subtitle>Punto de Recogida</ion-card-subtitle>
+              <ion-card-title>Origen</ion-card-title>
+            </div>
+          </div>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item lines="none" class="custom-input-item">
+            <ion-label position="stacked">Dirección / Nombre de Origen</ion-label>
+            <ion-input [(ngModel)]="originName" placeholder="Ej: Parque de la 93, Calle 93A"></ion-input>
+          </ion-item>
+
+          <div class="coords-row">
+            <ion-item lines="none" class="custom-input-item coord-item">
+              <ion-label position="stacked">Latitud Origen</ion-label>
+              <ion-input type="number" [(ngModel)]="originLat" placeholder="4.6766"></ion-input>
+            </ion-item>
+            <ion-item lines="none" class="custom-input-item coord-item">
+              <ion-label position="stacked">Longitud Origen</ion-label>
+              <ion-input type="number" [(ngModel)]="originLng" placeholder="-74.0483"></ion-input>
+            </ion-item>
+          </div>
+
+          <ion-button expand="block" fill="clear" size="small" color="primary" class="gps-btn" (click)="useCurrentLocation()">
+            <ion-icon slot="start" name="navigate-outline"></ion-icon>
+            Usar mi ubicación GPS actual
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Formulario de Destino -->
+      <ion-card class="form-card ion-margin-top">
+        <ion-card-header>
+          <div class="card-title-row">
+            <div class="icon-bubble dest-bubble">
+              <ion-icon name="navigate-outline"></ion-icon>
+            </div>
+            <div>
+              <ion-card-subtitle>Punto de Llegada</ion-card-subtitle>
+              <ion-card-title>Destino</ion-card-title>
+            </div>
+          </div>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item lines="none" class="custom-input-item">
+            <ion-label position="stacked">Dirección / Nombre de Destino</ion-label>
+            <ion-input [(ngModel)]="destName" placeholder="Ej: Centro Comercial Andino"></ion-input>
+          </ion-item>
+
+          <div class="coords-row">
+            <ion-item lines="none" class="custom-input-item coord-item">
+              <ion-label position="stacked">Latitud Destino</ion-label>
+              <ion-input type="number" [(ngModel)]="destLat" placeholder="4.6664"></ion-input>
+            </ion-item>
+            <ion-item lines="none" class="custom-input-item coord-item">
+              <ion-label position="stacked">Longitud Destino</ion-label>
+              <ion-input type="number" [(ngModel)]="destLng" placeholder="-74.0536"></ion-input>
+            </ion-item>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Visualizador del Recorrido Elegido en el Mapa -->
+      <div class="map-card-wrapper ion-margin-top">
+        <div class="map-header-title">
+          <ion-icon name="map-outline"></ion-icon>
+          <span>Recorrido proyectado en el mapa</span>
+        </div>
+        <app-ride-map
+          [originLat]="originLat"
+          [originLng]="originLng"
+          [originName]="originName"
+          [destLat]="destLat"
+          [destLng]="destLng"
+          [destName]="destName"
+          height="220px"
+        ></app-ride-map>
+      </div>
+
+      <!-- Botón Calcular Tarifa -->
+      <div class="actions-container ion-margin-top">
+        <ion-button expand="block" class="app-btn-coffee" (click)="estimateFare()" [disabled]="isEstimating()">
+          <ion-spinner *ngIf="isEstimating()" name="crescent" slot="start"></ion-spinner>
+          <ion-icon *ngIf="!isEstimating()" name="speedometer-outline" slot="start"></ion-icon>
+          {{ isEstimating() ? 'Calculando tarifa...' : 'Calcular Tarifa Estimada' }}
+        </ion-button>
+      </div>
+
+      <!-- Tarjeta de Estimación de Tarifa (Si ya se calculó) -->
+      <ion-card *ngIf="fareEstimate() as est" class="estimate-card ion-margin-top">
+        <ion-card-header>
+          <ion-card-subtitle>Cotización Proyectada</ion-card-subtitle>
+          <div class="fare-main-display">
+            <span class="fare-currency">$</span>
+            <span class="fare-number">{{ est.estimated_fare | number:'1.0-0' }}</span>
+            <span class="fare-code">{{ est.currency }}</span>
+          </div>
+        </ion-card-header>
+        <ion-card-content>
+          <!-- Métricas de Ruta -->
+          <div class="metrics-grid">
+            <div class="metric-box">
+              <ion-icon name="map-outline" class="metric-icon"></ion-icon>
+              <div class="metric-text">
+                <span class="metric-val">{{ est.distance_km }} km</span>
+                <span class="metric-label">Distancia</span>
+              </div>
+            </div>
+            <div class="metric-box">
+              <ion-icon name="timer-outline" class="metric-icon"></ion-icon>
+              <div class="metric-text">
+                <span class="metric-val">{{ est.duration_min }} min</span>
+                <span class="metric-label">Tiempo Est.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desglose de Tarifa -->
+          <div class="breakdown-details ion-margin-top">
+            <div class="breakdown-row">
+              <span>Tarifa Base:</span>
+              <span>${{ est.fare_breakdown.base_fare | number:'1.0-0' }}</span>
+            </div>
+            <div class="breakdown-row">
+              <span>Por Kilómetro:</span>
+              <span>${{ est.fare_breakdown.price_per_km | number:'1.0-0' }}</span>
+            </div>
+            <div class="breakdown-row">
+              <span>Por Minuto:</span>
+              <span>${{ est.fare_breakdown.price_per_minute | number:'1.0-0' }}</span>
+            </div>
+            <div class="breakdown-row">
+              <span>Tarifa Mínima:</span>
+              <span>${{ est.fare_breakdown.minimum_fare | number:'1.0-0' }}</span>
+            </div>
+            <div *ngIf="est.fare_breakdown.surge_multiplier > 1" class="breakdown-row surge-highlight">
+              <span>Multiplicador Dinámico:</span>
+              <span>{{ est.fare_breakdown.surge_multiplier }}x</span>
+            </div>
+          </div>
+
+          <!-- Botón Confirmar y Solicitar Viaje -->
+          <ion-button expand="block" class="app-btn-coffee request-btn ion-margin-top" (click)="requestRide()" [disabled]="isRequesting()">
+            <ion-spinner *ngIf="isRequesting()" name="crescent" slot="start"></ion-spinner>
+            <ion-icon *ngIf="!isRequesting()" name="car-sport-outline" slot="start"></ion-icon>
+            {{ isRequesting() ? 'Solicitando Uber...' : 'Confirmar y Solicitar Uber' }}
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 2: VIAJE ACTIVO / MONITOREO EN TIEMPO REAL                 -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'active'" class="tab-content">
+      
+      <!-- Si NO hay viaje activo -->
+      <div *ngIf="!hasActiveRide" class="empty-active-box">
+        <div class="empty-icon-wrap">
+          <ion-icon name="car-sport-outline"></ion-icon>
+        </div>
+        <h4>No tienes ningún viaje activo</h4>
+        <p>Selecciona tu destino para solicitar un vehículo ahora mismo.</p>
+        <ion-button class="app-btn-coffee ion-margin-top" (click)="selectedSegment = 'request'">
+          Solicitar un Viaje
+        </ion-button>
+      </div>
+
+      <!-- Si SÍ hay viaje activo -->
+      <div *ngIf="hasActiveRide">
+        
+        <!-- Tarjeta de Estado Principal -->
+        <ion-card class="active-ride-card">
+          <ion-card-header>
+            <div class="status-badge-header">
+              <ion-badge [color]="formatStatus(activeRideStatus).color" class="main-status-badge">
+                <ion-icon name="pulse-outline"></ion-icon>
+                {{ formatStatus(activeRideStatus).label }}
+              </ion-badge>
+              <span class="trip-id-tag">ID #{{ activeRideId }}</span>
+            </div>
+            <ion-card-title class="trip-type-title">
+              {{ activeRideStatus === 'requested' ? 'Buscando conductor...' : 'Tu servicio Uber Black' }}
+            </ion-card-title>
+          </ion-card-header>
+
+          <ion-card-content>
+            <!-- Radar de Búsqueda cuando está en requested -->
+            <div *ngIf="activeRideStatus === 'requested'" class="radar-container">
+              <div class="radar-circle circle-1"></div>
+              <div class="radar-circle circle-2"></div>
+              <div class="radar-center">
+                <ion-icon name="car-sport-outline"></ion-icon>
+              </div>
+              <p class="radar-text">Notificando a conductores en la zona...</p>
+            </div>
+
+            <!-- Datos del Conductor y Vehículo (si está en trip) -->
+            <div *ngIf="activeTrip && activeTrip.driver as driver" class="driver-info-container ion-margin-top">
+              <div class="driver-profile-row">
+                <div class="driver-avatar">
+                  <ion-icon name="person-outline"></ion-icon>
+                </div>
+                <div class="driver-meta">
+                  <h4 class="driver-name">{{ driver.user.name || 'Conductor Asignado' }}</h4>
+                  <div class="rating-display">
+                    <ion-icon name="star" class="star-gold"></ion-icon>
+                    <span>{{ driver.rating_average | number:'1.2-2' }} ⭐</span>
+                  </div>
+                </div>
+                <div *ngIf="driver.user.phone" class="driver-call">
+                  <a [href]="'tel:' + driver.user.phone" class="call-btn-link">
+                    <ion-icon name="call-outline"></ion-icon>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Vehículo y Matrícula -->
+              <div *ngIf="activeTrip.vehicle as vehicle" class="vehicle-card-row ion-margin-top">
+                <div class="vehicle-specs">
+                  <span class="vehicle-model">{{ vehicle.brand }} {{ vehicle.model }}</span>
+                  <span class="vehicle-color">{{ vehicle.color }}</span>
+                </div>
+                <div class="plate-box">
+                  <span class="plate-number">{{ vehicle.plate }}</span>
+                </div>
+              </div>
+
+              <!-- Ubicación GPS en vivo del Conductor -->
+              <div *ngIf="driver.latest_location as loc" class="driver-gps-box ion-margin-top">
+                <div class="gps-label-row">
+                  <ion-icon name="navigate-outline" class="gps-icon"></ion-icon>
+                  <span>GPS Conductor en tiempo real:</span>
+                </div>
+                <div class="gps-coords">
+                  <code>Lat: {{ loc.latitude }}, Lng: {{ loc.longitude }}</code>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resumen de Ruta y Tarifa -->
+            <div class="route-summary-box ion-margin-top">
+              <div class="route-node">
+                <span class="node-dot origin-dot"></span>
+                <span class="node-text">{{ activeOriginName }}</span>
+              </div>
+              <div class="route-line"></div>
+              <div class="route-node">
+                <span class="node-dot dest-dot"></span>
+                <span class="node-text">{{ activeDestName }}</span>
+              </div>
+            </div>
+
+            <div class="fare-active-row ion-margin-top">
+              <span class="fare-tag">Tarifa Proyectada:</span>
+              <span class="fare-value">${{ activeFare | number:'1.0-0' }} COP</span>
+            </div>
+
+            <!-- Mapa del Viaje Activo y Ubicación del Conductor -->
+            <div class="map-card-wrapper ion-margin-top">
+              <div class="map-header-title">
+                <ion-icon name="navigate-outline"></ion-icon>
+                <span>Seguimiento del recorrido en vivo</span>
+              </div>
+              <app-ride-map
+                [originLat]="activeOriginLat"
+                [originLng]="activeOriginLng"
+                [originName]="activeOriginName"
+                [destLat]="activeDestLat"
+                [destLng]="activeDestLng"
+                [destName]="activeDestName"
+                [driverLat]="activeDriverLat"
+                [driverLng]="activeDriverLng"
+                height="240px"
+              ></app-ride-map>
+            </div>
+
+            <!-- Botón Cancelar (Disponible en requested o assigned) -->
+            <div *ngIf="activeRideStatus === 'requested' || activeRideStatus === 'assigned'" class="cancel-action ion-margin-top">
+              <ion-button expand="block" color="danger" fill="outline" (click)="cancelCurrentRide()">
+                <ion-icon slot="start" name="close-circle-outline"></ion-icon>
+                Cancelar este Viaje
+              </ion-button>
+            </div>
+
+            <!-- Formulario de Calificación si el viaje finalizó -->
+            <div *ngIf="activeRideStatus === 'completed'" class="completed-rating-box ion-margin-top">
+              <div class="completed-banner">
+                <ion-icon name="checkmark-circle-outline" class="success-icon"></ion-icon>
+                <h4>¡Has llegado a tu destino!</h4>
+                <p>Valor final: <strong>${{ activeFare | number:'1.0-0' }} COP</strong></p>
+              </div>
+
+              <!-- Calificación interactiva -->
+              <div class="rating-form-card ion-margin-top">
+                <h5>Califica tu experiencia con el conductor:</h5>
+                <div class="star-rating-row">
+                  <ion-icon
+                    *ngFor="let s of [1,2,3,4,5]"
+                    [name]="s <= ratingScore ? 'star' : 'star-outline'"
+                    class="rate-star"
+                    [class.star-active]="s <= ratingScore"
+                    (click)="setScore(s)"
+                  ></ion-icon>
+                </div>
+
+                <ion-item lines="none" class="custom-input-item ion-margin-top">
+                  <ion-label position="stacked">Comentario u observaciones:</ion-label>
+                  <ion-textarea [(ngModel)]="ratingComment" placeholder="Excelente servicio, vehículo impecable..."></ion-textarea>
+                </ion-item>
+
+                <div class="incident-toggle-row">
+                  <ion-toggle [(ngModel)]="ratingHasIncident" color="warning">
+                    ¿Ocurrió alguna novedad o incidente?
+                  </ion-toggle>
+                </div>
+
+                <ion-button expand="block" class="app-btn-coffee ion-margin-top" (click)="submitRating()" [disabled]="isSubmittingRating()">
+                  <ion-spinner *ngIf="isSubmittingRating()" name="crescent" slot="start"></ion-spinner>
+                  <ion-icon *ngIf="!isSubmittingRating()" name="star" slot="start"></ion-icon>
+                  {{ isSubmittingRating() ? 'Guardando calificación...' : 'Enviar Calificación' }}
+                </ion-button>
+              </div>
+            </div>
+
+          </ion-card-content>
+        </ion-card>
+
+      </div>
+
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 3: HISTORIAL DE VIAJES Y CALIFICACIONES                    -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'history'" class="tab-content">
+      
+      <ion-refresher slot="fixed" (ionRefresh)="refreshHistory($event)">
+        <ion-refresher-content pullingText="Desliza para actualizar..." refreshingSpinner="crescent"></ion-refresher-content>
+      </ion-refresher>
+
+      <div class="history-header ion-margin-bottom">
+        <div>
+          <h3>Historial de Viajes</h3>
+          <p>Tus recorridos anteriores y valoraciones</p>
+        </div>
+        <ion-button fill="clear" color="primary" (click)="refreshHistory()">
+          <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+        </ion-button>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div *ngIf="isLoadingTrips" class="loading-trips-box">
+        <ion-spinner name="crescent" color="primary"></ion-spinner>
+        <p>Cargando historial...</p>
+      </div>
+
+      <!-- Historial Vacío -->
+      <div *ngIf="!isLoadingTrips && tripsHistory.length === 0" class="empty-history-box">
+        <ion-icon name="time-outline" class="empty-icon"></ion-icon>
+        <h4>Aún no tienes viajes registrados</h4>
+        <p>Cuando realices tus recorridos aparecerán aquí con su recibo y opción de calificar.</p>
+      </div>
+
+      <!-- Lista de Viajes Anteriores -->
+      <div *ngIf="!isLoadingTrips && tripsHistory.length > 0" class="trips-list">
+        <ion-card *ngFor="let trip of tripsHistory" class="trip-history-card">
+          <ion-card-header>
+            <div class="trip-card-header-row">
+              <div>
+                <ion-card-subtitle>{{ trip.created_at | date:'mediumDate' }} • {{ trip.created_at | date:'shortTime' }}</ion-card-subtitle>
+                <ion-card-title>Viaje #{{ trip.id }}</ion-card-title>
+              </div>
+              <ion-badge [color]="formatStatus(trip.status).color" class="status-pill">
+                {{ formatStatus(trip.status).label }}
+              </ion-badge>
+            </div>
+          </ion-card-header>
+
+          <ion-card-content>
+            <!-- Ruta del Viaje -->
+            <div class="history-route-box">
+              <div class="h-route-row">
+                <span class="route-bullet origin-bullet">•</span>
+                <span class="route-name">{{ trip.request?.origin_name || 'Punto de Origen' }}</span>
+              </div>
+              <div class="h-route-row">
+                <span class="route-bullet dest-bullet">•</span>
+                <span class="route-name">{{ trip.request?.destination_name || 'Punto de Destino' }}</span>
+              </div>
+            </div>
+
+            <!-- Datos de Tarifa y Vehículo -->
+            <div class="trip-details-grid ion-margin-top">
+              <div class="detail-col">
+                <span class="d-label">Tarifa</span>
+                <span class="d-value">${{ (trip.final_fare || trip.estimated_fare) | number:'1.0-0' }} COP</span>
+              </div>
+              <div *ngIf="trip.driver" class="detail-col">
+                <span class="d-label">Conductor</span>
+                <span class="d-value">{{ trip.driver.user.name || 'Conductor' }}</span>
+              </div>
+              <div *ngIf="trip.vehicle" class="detail-col">
+                <span class="d-label">Vehículo</span>
+                <span class="d-value">{{ trip.vehicle.brand }} ({{ trip.vehicle.plate }})</span>
+              </div>
+            </div>
+
+            <!-- Motivo de Cancelación si aplica -->
+            <div *ngIf="trip.cancellation_reason" class="cancellation-reason-box ion-margin-top">
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              <span>Motivo: {{ trip.cancellation_reason }}</span>
+            </div>
+
+            <!-- Sección de Calificación -->
+            <!-- Si ya está calificado -->
+            <div *ngIf="hasTripRating(trip)" class="rated-box ion-margin-top">
+              <div class="stars-display">
+                <span class="rated-label">Tu Calificación:</span>
+                <ion-icon
+                  *ngFor="let s of [1,2,3,4,5]"
+                  [name]="s <= trip.ratings![0].score ? 'star' : 'star-outline'"
+                  class="star-gold small-star"
+                ></ion-icon>
+                <span class="score-text">({{ trip.ratings![0].score }}/5)</span>
+              </div>
+              <p *ngIf="trip.ratings![0].comment" class="rated-comment">"{{ trip.ratings![0].comment }}"</p>
+            </div>
+
+            <!-- Si está completado pero aún no se ha calificado -->
+            <div *ngIf="trip.status === 'completed' && !hasTripRating(trip)" class="unrated-actions ion-margin-top">
+              <ion-button
+                *ngIf="activeRatingTripId !== trip.id"
+                fill="outline"
+                color="primary"
+                size="small"
+                expand="block"
+                (click)="openRatingForm(trip.id)"
+              >
+                <ion-icon slot="start" name="star-outline"></ion-icon>
+                Calificar Conductor
+              </ion-button>
+
+              <!-- Formulario de calificación inline para este viaje del historial -->
+              <div *ngIf="activeRatingTripId === trip.id" class="inline-rating-form">
+                <div class="form-title-row">
+                  <span>Puntúa este viaje:</span>
+                  <ion-button fill="clear" size="small" color="light" (click)="activeRatingTripId = null">
+                    Cancelar
+                  </ion-button>
+                </div>
+
+                <div class="star-rating-row">
+                  <ion-icon
+                    *ngFor="let s of [1,2,3,4,5]"
+                    [name]="s <= ratingScore ? 'star' : 'star-outline'"
+                    class="rate-star"
+                    [class.star-active]="s <= ratingScore"
+                    (click)="setScore(s)"
+                  ></ion-icon>
+                </div>
+
+                <ion-item lines="none" class="custom-input-item ion-margin-top">
+                  <ion-input [(ngModel)]="ratingComment" placeholder="Comentario sobre el servicio..."></ion-input>
+                </ion-item>
+
+                <div class="incident-toggle-row">
+                  <ion-toggle [(ngModel)]="ratingHasIncident" color="warning">
+                    ¿Hubo alguna incidencia?
+                  </ion-toggle>
+                </div>
+
+                <ion-button expand="block" class="app-btn-coffee ion-margin-top" (click)="submitRating()" [disabled]="isSubmittingRating()">
+                  <ion-spinner *ngIf="isSubmittingRating()" name="crescent" slot="start"></ion-spinner>
+                  <ion-icon *ngIf="!isSubmittingRating()" name="star" slot="start"></ion-icon>
+                  Enviar Calificación
+                </ion-button>
+              </div>
+            </div>
+
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+    </div>
 
   </div>
 </ion-content>

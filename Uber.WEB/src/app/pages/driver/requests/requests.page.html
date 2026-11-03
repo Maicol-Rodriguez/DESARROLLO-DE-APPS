@@ -5,56 +5,545 @@
       <span class="role-tag">CONDUCTOR</span>
     </ion-title>
     <ion-buttons slot="end">
-      <ion-button color="light" (click)="logout()">
+      <ion-button color="light" fill="clear" (click)="logout()">
         Cerrar Sesión
       </ion-button>
     </ion-buttons>
+  </ion-toolbar>
+
+  <!-- Barra de Segmentos Principal -->
+  <ion-toolbar color="dark" class="segment-toolbar">
+    <ion-segment [(ngModel)]="selectedSegment" color="primary">
+      <ion-segment-button value="requests">
+        <ion-icon name="list-outline"></ion-icon>
+        <ion-label>
+          Solicitudes
+          <span *ngIf="pendingRequests.length > 0" class="badge-count">{{ pendingRequests.length }}</span>
+        </ion-label>
+      </ion-segment-button>
+
+      <ion-segment-button value="active">
+        <ion-icon name="pulse-outline"></ion-icon>
+        <ion-label>
+          Servicio Activo
+          <span *ngIf="activeTrip" class="active-dot"></span>
+        </ion-label>
+      </ion-segment-button>
+
+      <ion-segment-button value="vehicle">
+        <ion-icon name="hardware-chip-outline"></ion-icon>
+        <ion-label>Vehículo & GPS</ion-label>
+      </ion-segment-button>
+    </ion-segment>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding driver-content" [fullscreen]="true">
   <div class="page-container">
 
-    <!-- Tarjeta de Bienvenida del Conductor -->
-    <ion-card class="user-card">
-      <ion-card-header>
-        <div class="user-header-row">
-          <div>
-            <ion-card-subtitle>Panel de Conductor</ion-card-subtitle>
-            <ion-card-title>Bienvenido, {{ currentUser?.name || 'Conductor' }}</ion-card-title>
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 1: SOLICITUDES ENTRANTE & CONTROL DE DISPONIBILIDAD        -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'requests'" class="tab-content">
+      
+      <!-- Tarjeta de Estado y Disponibilidad -->
+      <ion-card class="availability-card ion-margin-bottom">
+        <ion-card-content>
+          <div class="avail-row">
+            <div class="avail-text">
+              <span class="avail-label">Estado en la Plataforma:</span>
+              <div class="avail-status-tag">
+                <span class="status-indicator" [class.status-online]="isAvailable"></span>
+                <span class="status-name">{{ isAvailable ? 'EN LÍNEA (DISPONIBLE)' : 'DESCONECTADO' }}</span>
+              </div>
+            </div>
+            <div class="avail-toggle">
+              <ion-toggle
+                [checked]="isAvailable"
+                [disabled]="isTogglingAvailability() || !isApproved"
+                (ionChange)="toggleAvailability($event)"
+                color="success"
+              ></ion-toggle>
+            </div>
           </div>
-          <ion-badge color="secondary" class="role-badge">Conductor</ion-badge>
-        </div>
-      </ion-card-header>
-      <ion-card-content>
-        <p>Sesión activa: <code>{{ currentUser?.email }}</code></p>
-        <p class="status-text">Tu cuenta tiene acceso al panel de solicitudes y viajes.</p>
-      </ion-card-content>
-    </ion-card>
 
-    <ion-card class="flow-card ion-margin-top">
-      <ion-card-header>
-        <ion-card-subtitle>Módulo Conductor</ion-card-subtitle>
-        <ion-card-title>Servicios y Disponibilidad</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p>En la Etapa 5 implementaremos aquí:</p>
-        <div class="features-list">
-          <div class="feature-item">
-            <span class="feature-bullet">•</span>
-            <span>Alternar disponibilidad (En línea / Desconectado)</span>
+          <!-- Alerta si la cuenta no está aprobada -->
+          <div *ngIf="!isApproved" class="approval-warning ion-margin-top">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <span>Tu cuenta está en revisión por el Administrador. Podrás conectarte una vez sea aprobada.</span>
           </div>
-          <div class="feature-item">
-            <span class="feature-bullet">•</span>
-            <span>Ver solicitudes entrantes y aceptar con control 409</span>
+
+          <!-- Perfil rápido del Conductor -->
+          <div class="driver-quick-info ion-margin-top">
+            <div class="q-info-item">
+              <span class="q-label">Licencia</span>
+              <span class="q-val">{{ driverProfile?.license_number || 'LC-98234-A' }}</span>
+            </div>
+            <div class="q-info-item">
+              <span class="q-label">Calificación</span>
+              <span class="q-val star-val">⭐ {{ (driverProfile?.rating_average || 5.0) | number:'1.2-2' }}</span>
+            </div>
+            <div *ngIf="driverProfile?.vehicles && driverProfile.vehicles.length > 0" class="q-info-item">
+              <span class="q-label">Placa Auto</span>
+              <span class="q-val plate-mini">{{ driverProfile.vehicles[0].plate }}</span>
+            </div>
           </div>
-          <div class="feature-item">
-            <span class="feature-bullet">•</span>
-            <span>Control de viaje: Llegada, Iniciar, Completar y GPS</span>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Refresher para actualizar solicitudes -->
+      <ion-refresher slot="fixed" (ionRefresh)="refreshRequests($event)">
+        <ion-refresher-content pullingText="Desliza para actualizar solicitudes..." refreshingSpinner="crescent"></ion-refresher-content>
+      </ion-refresher>
+
+      <!-- Estado: Desconectado -->
+      <div *ngIf="!isAvailable" class="offline-box ion-margin-top">
+        <div class="offline-icon-wrap">
+          <ion-icon name="radio-outline"></ion-icon>
+        </div>
+        <h4>Actualmente estás desconectado</h4>
+        <p>Activa el interruptor "En Línea" para empezar a recibir solicitudes de pasajeros en tiempo real.</p>
+      </div>
+
+      <!-- Estado: En Línea pero Sin Solicitudes -->
+      <div *ngIf="isAvailable && pendingRequests.length === 0" class="waiting-requests-box ion-margin-top">
+        <div class="radar-container">
+          <div class="radar-circle circle-1"></div>
+          <div class="radar-circle circle-2"></div>
+          <div class="radar-center">
+            <ion-icon name="car-sport-outline"></ion-icon>
           </div>
         </div>
-      </ion-card-content>
-    </ion-card>
+        <h4>Buscando viajes cercanos...</h4>
+        <p>Las solicitudes de pasajeros en tu zona aparecerán aquí automáticamente.</p>
+        <ion-button fill="clear" color="primary" size="small" (click)="refreshRequests()">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Comprobar ahora
+        </ion-button>
+      </div>
+
+      <!-- Estado: Solicitudes Disponibles -->
+      <div *ngIf="isAvailable && pendingRequests.length > 0" class="requests-list ion-margin-top">
+        <div class="list-header">
+          <span class="list-title">Solicitudes Disponibles ({{ pendingRequests.length }})</span>
+          <ion-button fill="clear" size="small" color="primary" (click)="refreshRequests()">
+            <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+          </ion-button>
+        </div>
+
+        <ion-card *ngFor="let req of pendingRequests" class="request-item-card ion-margin-bottom">
+          <ion-card-header>
+            <div class="req-header-row">
+              <div>
+                <ion-card-subtitle>Solicitud #{{ req.id }}</ion-card-subtitle>
+                <ion-card-title class="fare-headline">${{ req.estimated_fare | number:'1.0-0' }} COP</ion-card-title>
+              </div>
+              <ion-badge color="warning" class="status-badge">Nueva Solicitud</ion-badge>
+            </div>
+          </ion-card-header>
+
+          <ion-card-content>
+            <!-- Ruta -->
+            <div class="req-route-box">
+              <div class="route-point">
+                <span class="route-dot origin-dot"></span>
+                <div class="point-text">
+                  <span class="point-tag">Punto de Recogida:</span>
+                  <span class="point-name">{{ req.origin_name }}</span>
+                </div>
+              </div>
+              <div class="route-divider"></div>
+              <div class="route-point">
+                <span class="route-dot dest-dot"></span>
+                <div class="point-text">
+                  <span class="point-tag">Destino del Pasajero:</span>
+                  <span class="point-name">{{ req.destination_name }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Métricas Estimadas -->
+            <div class="req-metrics-row ion-margin-top">
+              <div class="metric-pill">
+                <ion-icon name="speedometer-outline"></ion-icon>
+                <span>{{ req.estimated_distance_km }} km</span>
+              </div>
+              <div class="metric-pill">
+                <ion-icon name="timer-outline"></ion-icon>
+                <span>~{{ req.estimated_duration_min }} min</span>
+              </div>
+              <div *ngIf="req.client" class="metric-pill client-pill">
+                <ion-icon name="person-outline"></ion-icon>
+                <span>{{ req.client.name }}</span>
+              </div>
+            </div>
+
+            <!-- Previsualización de Ruta en el Mapa para el Conductor -->
+            <div *ngIf="req.origin_latitude && req.destination_latitude" class="req-map-preview ion-margin-top">
+              <app-ride-map
+                [originLat]="req.origin_latitude"
+                [originLng]="req.origin_longitude"
+                [originName]="req.origin_name"
+                [destLat]="req.destination_latitude"
+                [destLng]="req.destination_longitude"
+                [destName]="req.destination_name"
+                height="150px"
+                [interactive]="false"
+              ></app-ride-map>
+            </div>
+
+            <!-- Botón de Aceptar Servicio (Con control RNF-05) -->
+            <ion-button
+              expand="block"
+              class="app-btn-coffee accept-btn ion-margin-top"
+              (click)="acceptRequest(req)"
+              [disabled]="isProcessingAction()"
+            >
+              <ion-spinner *ngIf="isProcessingAction()" name="crescent" slot="start"></ion-spinner>
+              <ion-icon *ngIf="!isProcessingAction()" name="checkmark-done-outline" slot="start"></ion-icon>
+              {{ isProcessingAction() ? 'Aceptando viaje...' : 'Aceptar este Servicio' }}
+            </ion-button>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 2: SERVICIO ACTIVO / EJECUCIÓN DEL VIAJE                   -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'active'" class="tab-content">
+      
+      <!-- Si NO hay viaje en curso -->
+      <div *ngIf="!activeTrip" class="empty-active-box">
+        <div class="empty-icon-wrap">
+          <ion-icon name="car-sport-outline"></ion-icon>
+        </div>
+        <h4>No tienes ningún servicio en curso</h4>
+        <p>Acepta una solicitud en la pestaña "Solicitudes" para iniciar un viaje con un pasajero.</p>
+        <ion-button class="app-btn-coffee ion-margin-top" (click)="selectedSegment = 'requests'">
+          Ver Solicitudes Disponibles
+        </ion-button>
+      </div>
+
+      <!-- Si SÍ hay viaje en curso -->
+      <div *ngIf="activeTrip as trip">
+        
+        <ion-card class="active-trip-card">
+          <ion-card-header>
+            <div class="active-card-top-row">
+              <ion-badge [color]="formatTripStatus(trip.status).color" class="trip-status-pill">
+                <ion-icon name="pulse-outline"></ion-icon>
+                {{ formatTripStatus(trip.status).label }}
+              </ion-badge>
+              <span class="trip-id-text">Viaje #{{ trip.id }}</span>
+            </div>
+            <ion-card-title class="trip-title-cost">
+              Tarifa: ${{ (trip.final_fare || trip.estimated_fare) | number:'1.0-0' }} COP
+            </ion-card-title>
+          </ion-card-header>
+
+          <ion-card-content>
+            
+            <!-- Barra de Progreso de 4 Pasos -->
+            <div class="stepper-container ion-margin-bottom">
+              <div class="step-item" [class.step-done]="trip.status !== 'assigned'" [class.step-current]="trip.status === 'assigned'">
+                <div class="step-circle">1</div>
+                <span class="step-text">Asignado</span>
+              </div>
+              <div class="step-line" [class.line-done]="trip.status === 'driver_arrived' || trip.status === 'in_progress' || trip.status === 'completed'"></div>
+              
+              <div class="step-item" [class.step-done]="trip.status === 'in_progress' || trip.status === 'completed'" [class.step-current]="trip.status === 'driver_arrived'">
+                <div class="step-circle">2</div>
+                <span class="step-text">Llegada</span>
+              </div>
+              <div class="step-line" [class.line-done]="trip.status === 'in_progress' || trip.status === 'completed'"></div>
+              
+              <div class="step-item" [class.step-done]="trip.status === 'completed'" [class.step-current]="trip.status === 'in_progress'">
+                <div class="step-circle">3</div>
+                <span class="step-text">En Ruta</span>
+              </div>
+              <div class="step-line" [class.line-done]="trip.status === 'completed'"></div>
+              
+              <div class="step-item" [class.step-done]="trip.status === 'completed'" [class.step-current]="trip.status === 'completed'">
+                <div class="step-circle">4</div>
+                <span class="step-text">Liquidado</span>
+              </div>
+            </div>
+
+            <!-- Datos del Pasajero -->
+            <div class="passenger-card-box ion-margin-top">
+              <div class="passenger-avatar">
+                <ion-icon name="person-outline"></ion-icon>
+              </div>
+              <div class="passenger-meta">
+                <h4 class="p-name">{{ trip.client?.name || trip.request?.client?.name || 'Pasajero Uber' }}</h4>
+                <span class="p-role">Pasajero Verificado</span>
+              </div>
+              <div *ngIf="trip.client?.phone || trip.request?.client?.phone as phone" class="passenger-call">
+                <a [href]="'tel:' + phone" class="call-circle-btn">
+                  <ion-icon name="call-outline"></ion-icon>
+                </a>
+              </div>
+            </div>
+
+            <!-- Resumen de Ruta -->
+            <div class="trip-route-details ion-margin-top">
+              <div class="t-node">
+                <span class="t-bullet orig-bullet"></span>
+                <div class="t-texts">
+                  <span class="t-tag">Punto de Recogida:</span>
+                  <span class="t-name">{{ trip.request?.origin_name || 'Origen' }}</span>
+                </div>
+              </div>
+              <div class="t-line"></div>
+              <div class="t-node">
+                <span class="t-bullet dest-bullet"></span>
+                <div class="t-texts">
+                  <span class="t-tag">Destino:</span>
+                  <span class="t-name">{{ trip.request?.destination_name || 'Destino' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mapa del Recorrido a Realizar para el Conductor -->
+            <div class="driver-trip-map ion-margin-top">
+              <div class="map-label-header">
+                <ion-icon name="navigate-outline"></ion-icon>
+                <span>Recorrido a realizar en tiempo real</span>
+              </div>
+              <app-ride-map
+                [originLat]="tripOriginLat"
+                [originLng]="tripOriginLng"
+                [originName]="trip.request?.origin_name || 'Origen'"
+                [destLat]="tripDestLat"
+                [destLng]="tripDestLng"
+                [destName]="trip.request?.destination_name || 'Destino'"
+                [driverLat]="driverCurrentLat"
+                [driverLng]="driverCurrentLng"
+                height="240px"
+              ></app-ride-map>
+            </div>
+
+            <!-- ========================================================= -->
+            <!-- ACCIONES DINÁMICAS SEGÚN EL ESTADO DEL VIAJE             -->
+            <!-- ========================================================= -->
+
+            <!-- PASO 1: ASIGNADO ➔ REGISTRAR LLEGADA (arrive) -->
+            <div *ngIf="trip.status === 'assigned'" class="action-step-card ion-margin-top">
+              <div class="step-instruction">
+                <ion-icon name="navigate-outline" class="step-icon"></ion-icon>
+                <div>
+                  <h5>Dirígete al punto de recogida</h5>
+                  <p>Cuando llegues al punto donde se encuentra el pasajero, presiona el botón inferior.</p>
+                </div>
+              </div>
+              <ion-button
+                expand="block"
+                class="app-btn-coffee step-cta-btn ion-margin-top"
+                (click)="arriveAtPickup()"
+                [disabled]="isProcessingAction()"
+              >
+                <ion-spinner *ngIf="isProcessingAction()" name="crescent" slot="start"></ion-spinner>
+                <ion-icon *ngIf="!isProcessingAction()" name="location-outline" slot="start"></ion-icon>
+                {{ isProcessingAction() ? 'Registrando llegada...' : '📍 Registrar Llegada (Arrive)' }}
+              </ion-button>
+            </div>
+
+            <!-- PASO 2: LLEGADA AL PUNTO ➔ INICIAR VIAJE (start) -->
+            <div *ngIf="trip.status === 'driver_arrived'" class="action-step-card arrived-highlight ion-margin-top">
+              <div class="step-instruction">
+                <ion-icon name="checkmark-circle-outline" class="step-icon text-success"></ion-icon>
+                <div>
+                  <h5>Has llegado al punto de recogida</h5>
+                  <p>El cliente ha recibido la notificación de que estás esperándolo. Una vez aborde el vehículo, inicia el recorrido.</p>
+                </div>
+              </div>
+              <ion-button
+                expand="block"
+                color="success"
+                class="step-cta-btn ion-margin-top"
+                (click)="startRide()"
+                [disabled]="isProcessingAction()"
+              >
+                <ion-spinner *ngIf="isProcessingAction()" name="crescent" slot="start"></ion-spinner>
+                <ion-icon *ngIf="!isProcessingAction()" name="car-sport-outline" slot="start"></ion-icon>
+                {{ isProcessingAction() ? 'Iniciando viaje...' : '🚀 Iniciar Recorrido (Start Trip)' }}
+              </ion-button>
+            </div>
+
+            <!-- PASO 3: EN RUTA ➔ FINALIZAR Y LIQUIDAR (complete) -->
+            <div *ngIf="trip.status === 'in_progress'" class="action-step-card ion-margin-top">
+              <div class="step-instruction">
+                <ion-icon name="speedometer-outline" class="step-icon text-warning"></ion-icon>
+                <div>
+                  <h5>Viaje en curso hacia el destino</h5>
+                  <p>Conduce con precaución. Al llegar a destino, confirma la distancia y tiempo para liquidar la tarifa definitiva.</p>
+                </div>
+              </div>
+
+              <!-- Formulario de Liquidación de Tarifa -->
+              <div class="settlement-form ion-margin-top">
+                <span class="settle-title">Datos reales para liquidación de tarifa:</span>
+                <div class="coords-row ion-margin-top">
+                  <ion-item lines="none" class="custom-input-item coord-item">
+                    <ion-label position="stacked">Distancia real (km)</ion-label>
+                    <ion-input type="number" [(ngModel)]="actualDistanceKm" placeholder="Ej: 2.5"></ion-input>
+                  </ion-item>
+                  <ion-item lines="none" class="custom-input-item coord-item">
+                    <ion-label position="stacked">Tiempo real (min)</ion-label>
+                    <ion-input type="number" [(ngModel)]="actualDurationMin" placeholder="Ej: 8"></ion-input>
+                  </ion-item>
+                </div>
+              </div>
+
+              <ion-button
+                expand="block"
+                class="app-btn-coffee step-cta-btn ion-margin-top"
+                (click)="completeRide()"
+                [disabled]="isProcessingAction()"
+              >
+                <ion-spinner *ngIf="isProcessingAction()" name="crescent" slot="start"></ion-spinner>
+                <ion-icon *ngIf="!isProcessingAction()" name="flag-outline" slot="start"></ion-icon>
+                {{ isProcessingAction() ? 'Liquidando viaje...' : '🏁 Finalizar y Liquidar Viaje' }}
+              </ion-button>
+            </div>
+
+            <!-- PASO 4: COMPLETADO Y LIQUIDADO -->
+            <div *ngIf="trip.status === 'completed'" class="completed-summary-card ion-margin-top">
+              <div class="comp-icon-wrap">
+                <ion-icon name="checkmark-done-outline"></ion-icon>
+              </div>
+              <h4>¡Viaje Finalizado y Liquidado!</h4>
+              <p class="final-fare-text">Tarifa cobrada: <strong>${{ trip.final_fare | number:'1.0-0' }} COP</strong></p>
+              
+              <div class="comp-metrics-box ion-margin-top">
+                <div class="c-metric">
+                  <span class="cm-label">Distancia Final</span>
+                  <span class="cm-val">{{ trip.distance_travelled_km }} km</span>
+                </div>
+                <div class="c-metric">
+                  <span class="cm-label">Tiempo Total</span>
+                  <span class="cm-val">{{ trip.duration_travelled_min }} min</span>
+                </div>
+              </div>
+
+              <ion-button expand="block" class="app-btn-coffee ion-margin-top" (click)="dismissCompletedTrip()">
+                <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+                Listo, volver a recibir solicitudes
+              </ion-button>
+            </div>
+
+          </ion-card-content>
+        </ion-card>
+
+      </div>
+
+    </div>
+
+
+    <!-- =================================================================== -->
+    <!-- PESTAÑA 3: VEHÍCULO & TELEMETRÍA GPS                               -->
+    <!-- =================================================================== -->
+    <div *ngIf="selectedSegment === 'vehicle'" class="tab-content">
+      
+      <!-- Tarjeta del Vehículo Registrado -->
+      <ion-card class="vehicle-info-card ion-margin-bottom">
+        <ion-card-header>
+          <div class="veh-header-row">
+            <div>
+              <ion-card-subtitle>Vehículo Registrado</ion-card-subtitle>
+              <ion-card-title>
+                {{ driverProfile?.vehicles?.[0]?.brand || 'Vehículo' }} {{ driverProfile?.vehicles?.[0]?.model || '' }}
+              </ion-card-title>
+            </div>
+            <div class="plate-box-colombia">
+              <span class="plate-code">{{ driverProfile?.vehicles?.[0]?.plate || 'UBR-123' }}</span>
+              <span class="plate-sub">COLOMBIA</span>
+            </div>
+          </div>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="veh-specs-grid">
+            <div class="v-spec-item">
+              <span class="vs-label">Año</span>
+              <span class="vs-val">{{ driverProfile?.vehicles?.[0]?.year || '2024' }}</span>
+            </div>
+            <div class="v-spec-item">
+              <span class="vs-label">Color</span>
+              <span class="vs-val">{{ driverProfile?.vehicles?.[0]?.color || 'Gris' }}</span>
+            </div>
+            <div class="v-spec-item">
+              <span class="vs-label">Capacidad</span>
+              <span class="vs-val">{{ driverProfile?.vehicles?.[0]?.capacity || 4 }} Pasajeros</span>
+            </div>
+            <div class="v-spec-item">
+              <span class="vs-label">Estado</span>
+              <span class="vs-val text-success">Activo</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Panel de Telemetría GPS -->
+      <ion-card class="gps-telemetry-card">
+        <ion-card-header>
+          <div class="gps-head-row">
+            <div>
+              <ion-card-subtitle>Telemetría en Tiempo Real</ion-card-subtitle>
+              <ion-card-title>Geolocalización GPS</ion-card-title>
+            </div>
+            <ion-icon name="radio-outline" class="gps-radar-icon" [class.gps-active]="isTransmittingGps"></ion-icon>
+          </div>
+        </ion-card-header>
+
+        <ion-card-content>
+          <!-- Toggle de Transmisión Continua -->
+          <div class="gps-toggle-row">
+            <div class="gps-toggle-text">
+              <span class="gt-title">Transmisión Continua de GPS</span>
+              <span class="gt-sub">Envía la ubicación del conductor al servidor cada 8 segundos</span>
+            </div>
+            <ion-toggle [checked]="isTransmittingGps" (ionChange)="toggleGpsTelemetry($event)" color="primary"></ion-toggle>
+          </div>
+
+          <!-- Última Ubicación Reportada -->
+          <div class="latest-location-box ion-margin-top">
+            <span class="loc-box-title">Último reporte registrado:</span>
+            <div *ngIf="lastLocation as loc" class="loc-details ion-margin-top">
+              <div class="loc-row">
+                <span>Coordenadas:</span>
+                <code>{{ loc.latitude }}, {{ loc.longitude }}</code>
+              </div>
+              <div class="loc-row">
+                <span>Velocidad:</span>
+                <span>{{ loc.speed }} km/h</span>
+              </div>
+              <div class="loc-row">
+                <span>Rumbo:</span>
+                <span>{{ loc.heading }}°</span>
+              </div>
+              <div class="loc-row">
+                <span>Fecha / Hora:</span>
+                <span>{{ loc.recorded_at | date:'mediumTime' }}</span>
+              </div>
+            </div>
+
+            <div *ngIf="!lastLocation" class="loc-details-empty ion-margin-top">
+              <p>Sin reportes recientes. Activa la transmisión continua o presiona el botón inferior.</p>
+            </div>
+          </div>
+
+          <!-- Botón de Envío Manual de Coordenadas -->
+          <ion-button expand="block" fill="outline" color="primary" class="ion-margin-top" (click)="sendManualGps()">
+            <ion-icon slot="start" name="navigate-outline"></ion-icon>
+            Transmitir Ubicación GPS Ahora
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+    </div>
 
   </div>
 </ion-content>

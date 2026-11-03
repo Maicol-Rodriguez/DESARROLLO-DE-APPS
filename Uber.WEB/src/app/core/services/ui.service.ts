@@ -69,4 +69,60 @@ export class UiService {
       this.activeLoading = null;
     }
   }
+
+  /**
+   * Muestra un cuadro de confirmación (Sí / No).
+   */
+  async showConfirm(header: string, message: string, confirmText: string = 'Confirmar', cancelText: string = 'Cancelar'): Promise<boolean> {
+    return new Promise(async (resolve) => {
+      const alert = await this.alertCtrl.create({
+        header,
+        message,
+        buttons: [
+          {
+            text: cancelText,
+            role: 'cancel',
+            handler: () => resolve(false)
+          },
+          {
+            text: confirmText,
+            handler: () => resolve(true)
+          }
+        ]
+      });
+      await alert.present();
+    });
+  }
+
+  /**
+   * Muestra una ventana de entrada de texto (prompt) para capturar motivos o comentarios.
+   */
+  async showPrompt(header: string, message: string, placeholder: string = 'Escribe aquí...', defaultValue: string = ''): Promise<string | null> {
+    return new Promise(async (resolve) => {
+      const alert = await this.alertCtrl.create({
+        header,
+        message,
+        inputs: [
+          {
+            name: 'inputField',
+            type: 'text',
+            placeholder,
+            value: defaultValue
+          }
+        ],
+        buttons: [
+          {
+            text: 'Cancelar',
+            role: 'cancel',
+            handler: () => resolve(null)
+          },
+          {
+            text: 'Aceptar',
+            handler: (data) => resolve(data.inputField ? data.inputField.trim() : '')
+          }
+        ]
+      });
+      await alert.present();
+    });
+  }
 }

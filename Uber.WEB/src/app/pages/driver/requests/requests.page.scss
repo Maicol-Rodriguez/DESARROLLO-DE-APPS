@@ -1,10 +1,11 @@
 .driver-content {
-  --background: radial-gradient(circle at top center, #231d19 0%, #121110 70%);
+  --background: radial-gradient(circle at top center, #231d19 0%, #121110 75%);
 }
 
 .page-container {
   max-width: 650px;
   margin: 0 auto;
+  padding-bottom: 30px;
 }
 
 .brand-title {
@@ -23,37 +24,942 @@
   letter-spacing: 1px;
 }
 
-.user-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Toolbar de Segmentos */
+.segment-toolbar {
+  --background: #171412;
+  border-bottom: 1px solid var(--app-border-color);
 
-  .role-badge {
-    font-size: 0.85rem;
-    padding: 6px 14px;
-    border-radius: 20px;
+  ion-segment {
+    --background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 3px;
+
+    ion-segment-button {
+      --color: #a89d92;
+      --color-checked: #121110;
+      --indicator-color: var(--ion-color-secondary);
+      --indicator-box-shadow: 0 2px 10px rgba(140, 99, 57, 0.4);
+      min-height: 42px;
+      font-weight: 600;
+      font-size: 0.85rem;
+
+      ion-icon {
+        font-size: 1.15rem;
+        margin-right: 4px;
+      }
+    }
   }
 }
 
-.status-text {
-  color: #a89d92;
-  margin-top: 6px;
+.badge-count {
+  background: var(--ion-color-primary);
+  color: #121110;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
 }
 
-.features-list {
-  margin-top: 16px;
+.active-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #2dd36f;
+  border-radius: 50%;
+  margin-left: 6px;
+  animation: pulseDot 1.5s infinite;
+}
 
-  .feature-item {
+@keyframes pulseDot {
+  0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(45, 211, 111, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(45, 211, 111, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(45, 211, 111, 0); }
+}
+
+/* ===================================================================== */
+/* PESTAÑA 1: SOLICITUDES & DISPONIBILIDAD                              */
+/* ===================================================================== */
+.availability-card {
+  margin: 0;
+  border: 1px solid rgba(196, 154, 108, 0.25);
+  background: linear-gradient(145deg, #241d18 0%, #171412 100%);
+
+  .avail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .avail-text {
+      .avail-label {
+        font-size: 0.75rem;
+        color: #9e9185;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .avail-status-tag {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+
+        .status-indicator {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: #eb445a;
+
+          &.status-online {
+            background: #2dd36f;
+            box-shadow: 0 0 10px rgba(45, 211, 111, 0.8);
+          }
+        }
+
+        .status-name {
+          font-weight: 800;
+          font-size: 1rem;
+          color: #fff;
+          letter-spacing: 0.5px;
+        }
+      }
+    }
+  }
+
+  .approval-warning {
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
-    color: #ded6cf;
-    font-size: 0.95rem;
+    gap: 8px;
+    background: rgba(255, 196, 9, 0.12);
+    border: 1px solid rgba(255, 196, 9, 0.3);
+    padding: 8px 12px;
+    border-radius: 10px;
+    color: #ffc409;
+    font-size: 0.82rem;
+  }
 
-    .feature-bullet {
-      color: var(--ion-color-secondary);
+  .driver-quick-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 12px;
+    padding: 10px 12px;
+
+    .q-info-item {
+      display: flex;
+      flex-direction: column;
+
+      .q-label {
+        font-size: 0.7rem;
+        color: #9e9185;
+        text-transform: uppercase;
+      }
+
+      .q-val {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #fff;
+        margin-top: 2px;
+
+        &.star-val {
+          color: #ffc409;
+        }
+
+        &.plate-mini {
+          color: var(--app-coffee-accent);
+          font-family: monospace;
+        }
+      }
+    }
+  }
+}
+
+.offline-box,
+.waiting-requests-box {
+  text-align: center;
+  padding: 50px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 20px;
+  border: 1px dashed rgba(196, 154, 108, 0.25);
+
+  .offline-icon-wrap {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    ion-icon {
+      font-size: 2.4rem;
+      color: #9e9185;
+    }
+  }
+
+  h4 {
+    color: var(--app-coffee-light);
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+
+  p {
+    color: #9e9185;
+    margin: 0;
+    font-size: 0.9rem;
+  }
+}
+
+/* Radar Pulsing */
+.radar-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 10px auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .radar-circle {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 2px solid var(--ion-color-secondary);
+    border-radius: 50%;
+    animation: radarRipple 2.2s infinite ease-out;
+
+    &.circle-2 {
+      animation-delay: 1.1s;
+    }
+  }
+
+  .radar-center {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #8c6339, #4a3525);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(140, 99, 57, 0.6);
+    z-index: 2;
+
+    ion-icon {
+      font-size: 1.6rem;
+      color: #fff;
+    }
+  }
+}
+
+@keyframes radarRipple {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+
+  .list-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--app-coffee-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.request-item-card {
+  margin: 0;
+  border: 1px solid rgba(196, 154, 108, 0.3);
+
+  .req-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .fare-headline {
       font-size: 1.5rem;
-      margin-right: 10px;
+      font-weight: 800;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+  }
+
+  .req-route-box {
+    background: rgba(0, 0, 0, 0.25);
+    padding: 12px;
+    border-radius: 12px;
+
+    .route-point {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+
+      .route-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-top: 4px;
+
+        &.origin-dot {
+          background: #2dd36f;
+        }
+
+        &.dest-dot {
+          background: var(--app-coffee-accent);
+        }
+      }
+
+      .point-text {
+        display: flex;
+        flex-direction: column;
+
+        .point-tag {
+          font-size: 0.7rem;
+          color: #9e9185;
+          text-transform: uppercase;
+        }
+
+        .point-name {
+          font-size: 0.9rem;
+          color: #ded6cf;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .route-divider {
+      width: 2px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.2);
+      margin-left: 4px;
+      margin-top: 2px;
+      margin-bottom: 2px;
+    }
+  }
+
+  .req-metrics-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    .metric-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.8rem;
+      color: #ded6cf;
+
+      ion-icon {
+        color: var(--app-coffee-accent);
+        font-size: 0.95rem;
+      }
+
+      &.client-pill {
+        background: rgba(196, 154, 108, 0.12);
+        color: var(--app-coffee-light);
+      }
+    }
+  }
+
+  .req-map-preview {
+    margin-top: 10px;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .accept-btn {
+    height: 48px;
+    font-size: 1rem;
+  }
+}
+
+/* ===================================================================== */
+/* PESTAÑA 2: SERVICIO ACTIVO (CONTROL DE VIAJE)                        */
+/* ===================================================================== */
+.empty-active-box {
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 20px;
+  border: 1px dashed rgba(196, 154, 108, 0.25);
+  margin-top: 10px;
+
+  .empty-icon-wrap {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: rgba(196, 154, 108, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    ion-icon {
+      font-size: 2.8rem;
+      color: var(--app-coffee-accent);
+    }
+  }
+
+  h4 {
+    color: var(--app-coffee-light);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+
+  p {
+    color: #9e9185;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+}
+
+.active-trip-card {
+  margin: 0;
+  border: 1px solid var(--app-coffee-accent);
+
+  .active-card-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .trip-status-pill {
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .trip-id-text {
+      font-size: 0.85rem;
+      color: #9e9185;
+      font-family: monospace;
+    }
+  }
+
+  .trip-title-cost {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #fff;
+    margin-top: 8px;
+  }
+}
+
+/* Stepper de 4 Pasos */
+.stepper-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px 6px;
+
+  .step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    z-index: 2;
+
+    .step-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #2a2522;
+      border: 2px solid #555;
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .step-text {
+      font-size: 0.68rem;
+      color: #888;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    &.step-current {
+      .step-circle {
+        border-color: var(--app-coffee-accent);
+        color: #121110;
+        background: var(--app-coffee-accent);
+        box-shadow: 0 0 10px rgba(196, 154, 108, 0.6);
+      }
+
+      .step-text {
+        color: var(--app-coffee-light);
+      }
+    }
+
+    &.step-done {
+      .step-circle {
+        border-color: #2dd36f;
+        background: #2dd36f;
+        color: #121110;
+      }
+
+      .step-text {
+        color: #2dd36f;
+      }
+    }
+  }
+
+  .step-line {
+    flex: 1;
+    height: 3px;
+    background: #333;
+    margin: 0 4px 18px;
+
+    &.line-done {
+      background: #2dd36f;
+    }
+  }
+}
+
+/* Datos del Pasajero */
+.passenger-card-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  .passenger-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--ion-color-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    ion-icon {
+      font-size: 1.5rem;
+      color: #fff;
+    }
+  }
+
+  .passenger-meta {
+    flex: 1;
+
+    .p-name {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .p-role {
+      font-size: 0.75rem;
+      color: #2dd36f;
+    }
+  }
+
+  .passenger-call {
+    .call-circle-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #2dd36f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1.25rem;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(45, 211, 111, 0.35);
+    }
+  }
+}
+
+/* Resumen de Ruta */
+.trip-route-details {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  padding: 12px;
+
+  .t-node {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    .t-bullet {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 4px;
+
+      &.orig-bullet {
+        background: #2dd36f;
+      }
+
+      &.dest-bullet {
+        background: var(--app-coffee-accent);
+      }
+    }
+
+    .t-texts {
+      display: flex;
+      flex-direction: column;
+
+      .t-tag {
+        font-size: 0.7rem;
+        color: #9e9185;
+        text-transform: uppercase;
+      }
+
+      .t-name {
+        font-size: 0.9rem;
+        color: #ded6cf;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .t-line {
+    width: 2px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.2);
+    margin-left: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+  }
+}
+
+.driver-trip-map {
+  margin-top: 14px;
+
+  .map-label-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--app-coffee-light);
+    margin-bottom: 8px;
+
+    ion-icon {
+      color: var(--ion-color-secondary);
+      font-size: 1.1rem;
+    }
+  }
+}
+
+/* Tarjetas de Acción de cada Paso */
+.action-step-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(196, 154, 108, 0.3);
+
+  &.arrived-highlight {
+    border-color: #2dd36f;
+    background: rgba(45, 211, 111, 0.05);
+  }
+
+  .step-instruction {
+    display: flex;
+    gap: 12px;
+
+    .step-icon {
+      font-size: 2rem;
+      color: var(--app-coffee-accent);
+
+      &.text-success {
+        color: #2dd36f;
+      }
+
+      &.text-warning {
+        color: #ffc409;
+      }
+    }
+
+    h5 {
+      margin: 0 0 4px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 0;
+      color: #a89d92;
+      font-size: 0.85rem;
+    }
+  }
+
+  .step-cta-btn {
+    height: 52px;
+    font-size: 1.05rem;
+  }
+
+  .settlement-form {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 12px;
+
+    .settle-title {
+      font-size: 0.82rem;
+      color: var(--app-coffee-light);
+      font-weight: 600;
+    }
+
+    .coords-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+
+      .coord-item {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+.completed-summary-card {
+  text-align: center;
+  padding: 24px 16px;
+  background: rgba(45, 211, 111, 0.08);
+  border-radius: 16px;
+  border: 1px solid rgba(45, 211, 111, 0.35);
+
+  .comp-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #2dd36f;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    ion-icon {
+      font-size: 2.4rem;
+      color: #121110;
+    }
+  }
+
+  h4 {
+    margin: 0 0 6px;
+    color: #fff;
+    font-size: 1.3rem;
+    font-weight: 800;
+  }
+
+  .final-fare-text {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #ded6cf;
+
+    strong {
+      color: #2dd36f;
+      font-size: 1.35rem;
+    }
+  }
+
+  .comp-metrics-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 12px;
+    padding: 10px;
+
+    .c-metric {
+      display: flex;
+      flex-direction: column;
+
+      .cm-label {
+        font-size: 0.72rem;
+        color: #9e9185;
+        text-transform: uppercase;
+      }
+
+      .cm-val {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #fff;
+      }
+    }
+  }
+}
+
+/* ===================================================================== */
+/* PESTAÑA 3: VEHÍCULO & TELEMETRÍA GPS                                 */
+/* ===================================================================== */
+.vehicle-info-card {
+  margin: 0;
+  border: 1px solid rgba(196, 154, 108, 0.25);
+
+  .veh-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .plate-box-colombia {
+      background: #fbc02d;
+      color: #000;
+      border: 2px solid #000;
+      border-radius: 6px;
+      padding: 4px 10px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+
+      .plate-code {
+        font-family: 'Arial Black', sans-serif;
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+        line-height: 1;
+      }
+
+      .plate-sub {
+        font-size: 0.55rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+      }
+    }
+  }
+
+  .veh-specs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 12px;
+    border-radius: 12px;
+
+    .v-spec-item {
+      display: flex;
+      flex-direction: column;
+
+      .vs-label {
+        font-size: 0.72rem;
+        color: #9e9185;
+        text-transform: uppercase;
+      }
+
+      .vs-val {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #fff;
+        margin-top: 2px;
+
+        &.text-success {
+          color: #2dd36f;
+        }
+      }
+    }
+  }
+}
+
+.gps-telemetry-card {
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .gps-head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .gps-radar-icon {
+      font-size: 1.6rem;
+      color: #555;
+
+      &.gps-active {
+        color: #2dd36f;
+        animation: pulseDot 1.5s infinite;
+      }
+    }
+  }
+
+  .gps-toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 12px;
+    border-radius: 12px;
+
+    .gps-toggle-text {
+      display: flex;
+      flex-direction: column;
+
+      .gt-title {
+        font-weight: 700;
+        color: #fff;
+        font-size: 0.95rem;
+      }
+
+      .gt-sub {
+        font-size: 0.75rem;
+        color: #9e9185;
+      }
+    }
+  }
+
+  .latest-location-box {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 12px;
+
+    .loc-box-title {
+      font-size: 0.8rem;
+      color: var(--app-coffee-light);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .loc-details {
+      .loc-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 0.85rem;
+        color: #ded6cf;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        code {
+          color: #2dd36f;
+        }
+      }
+    }
+
+    .loc-details-empty {
+      p {
+        margin: 6px 0 0;
+        font-size: 0.82rem;
+        color: #888;
+        font-style: italic;
+      }
     }
   }
 }
