@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detector de texto generado por IA</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <div class="contenedor-principal">
+    <header class="encabezado">
+      <h1 class="titulo-principal">Detector de texto generado por IA</h1>
+      <p class="subtitulo">Herramienta académica para estimar la probabilidad de autoría por IA mediante perplejidad y variabilidad sintáctica.</p>
+    </header>
+
+    <main>
+      <section class="tarjeta-formulario" aria-labelledby="etiqueta-texto">
+        <label id="etiqueta-texto" for="campo-texto" class="etiqueta-campo">Texto en español a evaluar</label>
+        <textarea
+          id="campo-texto"
+          class="area-texto"
+          rows="9"
+          placeholder="Pega aquí el fragmento de texto a analizar (mínimo 50 palabras, máximo 5000 caracteres)..."
+          aria-describedby="info-contadores aviso-validaciones"
+        ></textarea>
+
+        <div id="info-contadores" class="barra-contadores">
+          <span id="contador-palabras" class="contador-item">Palabras: 0 / mín. 50</span>
+          <span id="contador-caracteres" class="contador-item">Caracteres: 0 / máx. 5000</span>
+        </div>
+        <p id="aviso-validaciones" class="texto-ayuda" aria-live="polite"></p>
+
+        <div class="fila-acciones">
+          <button id="btn-analizar" type="button" class="btn btn-primario" disabled>
+            <span id="texto-btn-analizar">Analizar texto</span>
+            <span id="spinner-carga" class="spinner" aria-hidden="true" hidden></span>
+          </button>
+          <button id="btn-limpiar" type="button" class="btn btn-secundario">Limpiar</button>
+        </div>
+      </section>
+
+      <div id="caja-error" class="alerta-error" role="alert" aria-live="assertive" hidden>
+        <p id="texto-error" class="mensaje-error-contenido"></p>
+      </div>
+
+      <section id="tarjeta-resultado" class="tarjeta-resultado" aria-labelledby="titulo-resultado" aria-live="polite" hidden>
+        <div class="encabezado-resultado">
+          <h2 id="titulo-resultado" class="titulo-seccion">Resultado del análisis</h2>
+          <span id="etiqueta-nivel" class="etiqueta-nivel">Nivel: -</span>
+        </div>
+
+        <div class="bloque-puntuacion">
+          <div class="fila-puntuacion">
+            <span class="etiqueta-metrica">Probabilidad estimada de IA:</span>
+            <span id="valor-puntuacion" class="valor-puntuacion">0%</span>
+          </div>
+          <div class="contenedor-barra">
+            <div id="barra-progreso" class="barra-progreso-relleno" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+          </div>
+        </div>
+
+        <div class="rejilla-metricas">
+          <article class="tarjeta-metrica">
+            <div class="metrica-cabecera">
+              <span class="metrica-nombre">Perplejidad</span>
+              <span id="valor-perplejidad" class="metrica-cifra">-</span>
+            </div>
+            <p class="metrica-descripcion">Mide qué tan predecible resulta el texto para el modelo. Menores valores sugieren patrones repetitivos o típicos de IA.</p>
+          </article>
+
+          <article class="tarjeta-metrica">
+            <div class="metrica-cabecera">
+              <span class="metrica-nombre">Variabilidad (Burstiness)</span>
+              <span id="valor-variabilidad" class="metrica-cifra">-</span>
+            </div>
+            <p class="metrica-descripcion">Desviación estándar entre oraciones. Una baja variabilidad indica ritmo sintético uniforme; una alta, cambios de estilo humano.</p>
+          </article>
+        </div>
+
+        <div class="seccion-sospechosas">
+          <h3 class="subtitulo-seccion">Oraciones más predecibles</h3>
+          <p class="texto-ayuda">Fragmentos con menor perplejidad calculada dentro del texto analizado:</p>
+          <ol id="lista-sospechosas" class="lista-sospechosas"></ol>
+        </div>
+
+        <div class="seccion-explicacion">
+          <h3 class="subtitulo-seccion">Explicación del resultado</h3>
+          <p id="parrafo-explicacion" class="texto-explicacion"></p>
+        </div>
+
+        <div class="caja-aviso-legal">
+          <p id="parrafo-aviso" class="texto-aviso-legal"></p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="pie-pagina">
+      <p>Proyecto académico sobre IA en el ciclo de vida del software. Resultados exclusivamente orientativos.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
