@@ -68,3 +68,16 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+*.py[cod]
+
+# Build and test artifacts
+build/
+dist/
+coverage/
+htmlcov/
