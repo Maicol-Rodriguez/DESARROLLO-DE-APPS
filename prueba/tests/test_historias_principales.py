@@ -1,12 +1,16 @@
-"""Pruebas de contrato RED para HU-01, HU-03 y HU-04."""
+"""Pruebas de contrato para HU-01, HU-03 y HU-04."""
 
-from io import BytesIO
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 
 import pytest
+import torch
 from fastapi.testclient import TestClient
 from docx import Document
+from pypdf import PdfWriter
 
+from chat_service import generar_respuesta_chat
+from document_processing import extraer_texto_documento
 import main
 
 
@@ -103,6 +107,56 @@ def test_subir_word_docx_valido_es_aceptado(
     )
 
     assert response.status_code == 201
+
+
+def test_extraer_texto_docx_incluye_parrafos_y_tablas() -> None:
+    documento = Document()
+    documento.add_paragraph("Texto del párrafo.")
+    tabla = documento.add_table(rows=1, cols=1)
+    tabla.cell(0, 0).text = "Texto de la tabla."
+    contenido = BytesIO()
+    documento.save(contenido)
+
+    texto = extraer_texto_documento(contenido.getvalue(), ".docx")
+
+    assert "Texto del párrafo." in texto
+    assert "Texto de la tabla." in texto
+
+
+def test_extraer_texto_pdf_valido() -> None:
+    escritor = PdfWriter()
+    escritor.add_blank_page(width=72, height=72)
+    contenido = BytesIO()
+    escritor.write(contenido)
+
+    assert extraer_texto_documento(contenido.getvalue(), ".pdf") == ""
+
+
+def test_chat_service_genera_respuesta_con_el_modelo_local() -> None:
+    class TokenizadorSimulado:
+        eos_token_id = 0
+
+        def __call__(self, prompt: str, return_tensors: str) -> dict:
+            self.prompt = prompt
+            return {"input_ids": torch.tensor([[1, 2]])}
+
+        def decode(self, tokens: torch.Tensor, skip_special_tokens: bool) -> str:
+            return "La estimación se basa en los patrones medidos."
+
+    class ModeloSimulado:
+        def generate(self, input_ids: torch.Tensor, **kwargs: object) -> torch.Tensor:
+            return torch.tensor([[1, 2, 3]])
+
+    tokenizer = TokenizadorSimulado()
+    response = generar_respuesta_chat(
+        "¿Por qué este trabajo tiene 80%?",
+        {"puntuacion": 80, "perplejidad": 30, "variabilidad": 5},
+        tokenizer,
+        ModeloSimulado(),
+    )
+
+    assert response == "La estimación se basa en los patrones medidos."
+    assert "¿Por qué este trabajo tiene 80%?" in tokenizer.prompt
 
 
 def test_subir_archivo_exe_devuelve_error_415(client: TestClient) -> None:

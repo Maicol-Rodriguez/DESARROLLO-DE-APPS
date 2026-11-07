@@ -1,35 +1,34 @@
 """Aplicación FastAPI para la estimación de autoría de textos por IA."""
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from io import BytesIO
-import logging
 import os
 from typing import Any, Dict, List
 from uuid import uuid4
 from zipfile import BadZipFile, ZipFile
 
-import torch
-from docx import Document
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ValidationError, field_validator
-from pypdf import PdfReader
-from pypdf.errors import PdfReadError
+from pydantic import BaseModel, field_validator
 
 from detector import analizar_texto, cargar_modelo
-
-logger = logging.getLogger(__name__)
-MAX_DOCUMENT_BYTES = 5 * 1024 * 1024
-SESSION_TTL = timedelta(minutes=15)
-UNSUPPORTED_FORMAT_MESSAGE = (
-    "Formato no soportado. Por favor, suba únicamente archivos PDF o Word"
+from api_constants import (
+    ANALYSIS_FAILURE_MESSAGE,
+    CHAT_GENERATION_FAILURE_MESSAGE,
+    DOCUMENT_TOO_LARGE_MESSAGE,
+    EXPIRED_SESSION_MESSAGE,
+    MAX_DOCUMENT_BYTES,
+    SESSION_TTL,
+    UNSUPPORTED_FORMAT_MESSAGE,
 )
-ANALYSIS_FAILURE_MESSAGE = "Fallo de conexión con el servidor de análisis"
-EXPIRED_SESSION_MESSAGE = (
-    "Sesión caducada. Por favor, recargue la página para enviar mensajes"
+from chat_service import generar_respuesta_chat
+from document_processing import (
+    crear_motivos,
+    extraer_texto_documento,
+    procesar_documento,
 )
 
 
@@ -167,65 +166,6 @@ async def ruta_analizar(peticion: AnalisisRequest, request: Request) -> Dict[str
     return analizar_texto(peticion.texto, tokenizer, model)
 
 
-def extraer_texto_documento(contenido: bytes, extension: str) -> str:
-    """Extrae texto de un archivo PDF o DOCX ya validado."""
-    if extension == ".pdf":
-        lector = PdfReader(BytesIO(contenido))
-        return "\n".join(pagina.extract_text() or "" for pagina in lector.pages)
-    if extension == ".docx":
-        documento = Document(BytesIO(contenido))
-        return "\n".join(parrafo.text for parrafo in documento.paragraphs)
-    raise ValueError(f"Extensión de documento no soportada: {extension}")
-
-
-def crear_motivos(resultado: Dict[str, Any]) -> List[str]:
-    """Construye razones lingüísticas verificables a partir de las métricas."""
-    perplejidad = float(resultado["perplejidad"])
-    variabilidad = float(resultado["variabilidad"])
-    motivo_perplejidad = (
-        "La perplejidad baja indica que las secuencias de palabras resultan "
-        "relativamente predecibles."
-        if perplejidad <= 40
-        else "La perplejidad observada refleja la predictibilidad de las "
-        "secuencias de palabras."
-    )
-    motivo_variabilidad = (
-        "La variabilidad reducida muestra un ritmo similar entre las oraciones."
-        if variabilidad <= 10
-        else "La variabilidad entre oraciones refleja cambios en el ritmo "
-        "y la estructura."
-    )
-    return [motivo_perplejidad, motivo_variabilidad]
-
-
-def procesar_documento(
-    document_id: str,
-    contenido: bytes,
-    extension: str,
-    tokenizer: Any,
-    model: Any,
-) -> None:
-    """Analiza un documento en segundo plano y conserva explícitamente su estado."""
-    try:
-        texto = extraer_texto_documento(contenido, extension)
-        if not texto.strip():
-            raise ValueError("El documento no contiene texto extraíble")
-        resultado = analizar_texto(texto, tokenizer, model)
-    except (PdfReadError, BadZipFile, ValueError, ValidationError, OSError):
-        logger.exception("No se pudo procesar el documento %s", document_id)
-        app.state.documentos[document_id]["estado"] = "error"
-        app.state.documentos[document_id]["error"] = ANALYSIS_FAILURE_MESSAGE
-        return
-    except Exception:
-        logger.exception("Falló el análisis del documento %s", document_id)
-        app.state.documentos[document_id]["estado"] = "error"
-        app.state.documentos[document_id]["error"] = ANALYSIS_FAILURE_MESSAGE
-        return
-
-    app.state.documentos[document_id]["estado"] = "completado"
-    app.state.documentos[document_id]["resultado"] = resultado
-
-
 @app.post("/api/v1/documentos/upload", status_code=201)
 async def subir_documento(
     request: Request,
@@ -235,7 +175,7 @@ async def subir_documento(
     """Valida un PDF/DOCX de hasta 5 MiB y programa su análisis."""
     contenido = await file.read(MAX_DOCUMENT_BYTES + 1)
     if len(contenido) > MAX_DOCUMENT_BYTES:
-        raise HTTPException(status_code=413, detail="El archivo supera el límite de 5 MiB")
+        raise HTTPException(status_code=413, detail=DOCUMENT_TOO_LARGE_MESSAGE)
 
     filename = file.filename or ""
     extension = os.path.splitext(filename)[1].lower()
@@ -263,8 +203,11 @@ async def subir_documento(
         document_id,
         contenido,
         extension,
+        request.app.state.documentos,
         request.app.state.tokenizer,
         request.app.state.model,
+        extraer_texto_documento,
+        analizar_texto,
     )
     return {
         "document_id": document_id,
@@ -293,38 +236,6 @@ async def obtener_resultado(document_id: str, request: Request) -> Dict[str, Any
     }
 
 
-def generar_respuesta_chat(
-    mensaje: str,
-    resultado: Dict[str, Any],
-    tokenizer: Any,
-    model: Any,
-) -> str:
-    """Genera una respuesta contextual usando el modelo causal configurado."""
-    prompt = (
-        "Explica brevemente en español una estimación estadística orientativa. "
-        f"Pregunta: {mensaje}\n"
-        f"Perplejidad: {resultado['perplejidad']}. "
-        f"Variabilidad: {resultado['variabilidad']}. "
-        f"Porcentaje estimado de IA: {resultado['puntuacion']}%.\n"
-        "Respuesta:"
-    )
-    entradas = tokenizer(prompt, return_tensors="pt")
-    with torch.no_grad():
-        salida = model.generate(
-            entradas["input_ids"],
-            max_new_tokens=80,
-            do_sample=False,
-            pad_token_id=tokenizer.eos_token_id,
-        )
-    respuesta = tokenizer.decode(
-        salida[0, entradas["input_ids"].shape[1]:],
-        skip_special_tokens=True,
-    ).strip()
-    if not respuesta:
-        raise RuntimeError("El modelo no generó una explicación")
-    return respuesta
-
-
 @app.post("/api/v1/chat/mensaje")
 async def enviar_mensaje_chat(
     peticion: ChatMessage,
@@ -349,11 +260,11 @@ async def enviar_mensaje_chat(
             request.app.state.tokenizer,
             request.app.state.model,
         )
-    except Exception as error:
+    except (OSError, RuntimeError, ValueError) as error:
         logger.exception("No se pudo generar una respuesta para el chat")
         raise HTTPException(
             status_code=503,
-            detail="No se pudo generar una explicación en este momento",
+            detail=CHAT_GENERATION_FAILURE_MESSAGE,
         ) from error
     return {
         "respuesta": respuesta,

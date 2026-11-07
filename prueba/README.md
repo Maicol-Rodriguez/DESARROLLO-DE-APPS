@@ -126,3 +126,5 @@ Instala las dependencias de desarrollo y ejecuta la suite desde esta carpeta:
 La suite de contrato para las historias se encuentra en `tests/test_historias_principales.py`. En la fase RED inicial fallaron las siete pruebas de rutas aún no implementadas; después de GREEN, la suite completa también cubre las pruebas existentes del detector.
 
 El backend expone los estados y resultados que la interfaz necesita. La pantalla visual de progreso, el gráfico circular, el botón de reintento y la vista de conversación deben implementarse en el cliente web; esta fase no modifica Angular/Ionic.
+
+La bitácora del proceso TDD y las decisiones de asistencia de IA está en [`bitacora_ia.md`](./bitacora_ia.md).
