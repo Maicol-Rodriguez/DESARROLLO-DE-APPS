@@ -1,6 +1,6 @@
 # Detector de texto generado por IA
 
-Proyecto académico con una API FastAPI para analizar texto y una interfaz web estática en `static/`. La API existente expone `POST /analizar`; las rutas de las historias de usuario de esta sección describen el contrato RED que se implementará y probará con TDD.
+Proyecto académico con una API FastAPI para analizar texto y una interfaz web estática en `static/`. Además del endpoint existente `POST /analizar`, la API incluye contratos para carga de documentos, consulta de resultados y explicación por chat.
 
 ## Funcionalidades Principales (HU-01, HU-03, HU-04)
 
@@ -11,7 +11,7 @@ Característica: Carga de documentos (HU-01)
   Escenario: Cargar un PDF válido de hasta 5 MiB
     Dado un archivo PDF válido de tamaño menor o igual a 5 MiB
     Cuando se envía a POST /api/v1/documentos/upload
-    Entonces la API responde 201 con un identificador y estado "procesando"
+    Entonces la API responde 201 con identificadores de documento y sesión, y estado "procesando"
   Escenario: Rechazar un formato no soportado
     Dado un archivo con extensión .exe
     Cuando se envía a POST /api/v1/documentos/upload
@@ -44,24 +44,34 @@ Característica: Explicación vía chatbot (HU-04)
 
 | Método y ruta | Solicitud | Respuesta esperada |
 |---|---|---|
-| `POST /api/v1/documentos/upload` | `multipart/form-data`, campo `file` | `201`, `document_id` y estado `procesando` |
-| `GET /api/v1/documentos/{id}/resultado` | Identificador en la ruta | `200` con `porcentaje_ia` y `motivos`; `503` si falla el análisis |
+| `POST /api/v1/documentos/upload` | `multipart/form-data`, campo `file` | `201`, `document_id`, `session_id` y estado `procesando` |
+| `GET /api/v1/documentos/{id}/resultado` | Identificador en la ruta | `200` con `porcentaje_ia` y `motivos`, `202` mientras procesa; `503` si falla el análisis |
 | `POST /api/v1/chat/mensaje` | JSON con `session_id` y `mensaje` | `200` con respuesta y razones; `401` si expiró la sesión |
 
 Los errores de estas rutas usan un objeto JSON con `detail`. El endpoint existente `POST /analizar` conserva su formato de validación actual.
 
 ### Ejemplos JSON
 
-Respuesta al cargar un documento:
+La carga usa `multipart/form-data` (no JSON):
+
+```http
+POST /api/v1/documentos/upload
+Content-Type: multipart/form-data
+
+file=@informe.pdf
+```
+
+Su respuesta JSON:
 
 ```json
 {
   "document_id": "doc-123",
+  "session_id": "sesion-456",
   "estado": "procesando"
 }
 ```
 
-Respuesta al consultar un resultado:
+Consulta `GET /api/v1/documentos/doc-123/resultado`; respuesta:
 
 ```json
 {
@@ -97,9 +107,10 @@ Solicitud y respuesta del chatbot:
 ### Supuestos y casos límite
 
 - El límite de carga es inclusivo: se aceptan hasta `5 * 1024 * 1024` bytes (5 MiB); un tamaño mayor debe rechazarse.
-- El formulario utiliza el campo `file`; se aceptan PDF y Word. La extensión no reemplaza la validación del tipo real del documento.
-- La respuesta `procesando` permite que una interfaz muestre progreso mientras se prepara el análisis; no implica que esta API ya reporte progreso porcentual.
-- Los resultados consultables y la duración de las sesiones requieren persistencia y vencimiento definidos al implementar estas rutas; no existen actualmente en el proyecto.
+- El formulario utiliza el campo `file`; se aceptan PDF y Word `.docx`. Se verifica la firma/estructura del archivo, no solo su extensión.
+- La respuesta `procesando` permite que una interfaz muestre progreso mientras se prepara el análisis; no reporta progreso porcentual.
+- Documentos, resultados y sesiones se guardan en memoria y se pierden al reiniciar el proceso o si se ejecutan varios workers. Las sesiones vencen 15 minutos después de su creación.
+- El chatbot reutiliza el modelo causal configurado por `MODELO_ID`; no se conecta a un proveedor externo y el modelo no está especializado en diálogo.
 - El scanner `POST /analizar` existente rechaza entradas con menos de 50 palabras o más de 5000 caracteres con HTTP 422.
 - La estimación estadística no demuestra la autoría humana o por IA; se debe comunicar como orientativa.
 
@@ -112,4 +123,6 @@ Instala las dependencias de desarrollo y ejecuta la suite desde esta carpeta:
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-La suite de contrato para las historias se encuentra en `tests/test_historias_principales.py`. Durante la fase RED, las pruebas de las rutas aún no implementadas deben fallar.
+La suite de contrato para las historias se encuentra en `tests/test_historias_principales.py`. En la fase RED inicial fallaron las siete pruebas de rutas aún no implementadas; después de GREEN, la suite completa también cubre las pruebas existentes del detector.
+
+El backend expone los estados y resultados que la interfaz necesita. La pantalla visual de progreso, el gráfico circular, el botón de reintento y la vista de conversación deben implementarse en el cliente web; esta fase no modifica Angular/Ionic.

@@ -3,3 +3,6 @@ uvicorn
 pydantic
 transformers
 torch
+python-multipart
+pypdf
+python-docx
