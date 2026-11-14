@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "node_modules", ".angular", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"test_*.py" = ["S101"]
+"tests/**/*.py" = ["S101"]
