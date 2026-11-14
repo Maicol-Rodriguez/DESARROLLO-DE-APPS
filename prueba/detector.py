@@ -1,10 +1,14 @@
-"""Módulo para el cálculo de perplejidad, variabilidad y puntuación de probabilidad estimada de IA."""
+"""Cálculo de perplejidad, variabilidad y puntuación estimada de autoría por IA."""
+import logging
 import os
 import re
 import statistics
-from typing import Any, Dict, List, Tuple
+from typing import Any
+
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+logger = logging.getLogger(__name__)
 
 # Configuración del modelo: se puede sobreescribir mediante variable de entorno.
 # Si el modelo en español falla o no está disponible, se puede usar 'gpt2' como respaldo.
@@ -18,13 +22,19 @@ UMBRAL_PPL_ALTA: float = 80.0
 UMBRAL_VAR_BAJA: float = 10.0
 UMBRAL_VAR_ALTA: float = 25.0
 MIN_PALABRAS_ORACION: int = 4
+LONGITUD_CONTEXTO_MODELO_POR_DEFECTO = 1024
+PESO_PUNTUACION_PERPLEJIDAD = 0.7
+PESO_PUNTUACION_VARIABILIDAD = 0.3
+UMBRAL_PUNTUACION_ALTA = 70.0
+UMBRAL_PUNTUACION_MEDIA = 35.0
+MAX_ORACIONES_SOSPECHOSAS = 3
 AVISO_LEGAL: str = (
     "Esta puntuación es solo una estimación estadística heurística y "
     "no constituye una prueba definitiva de autoría humana o por IA."
 )
 
 
-def cargar_modelo(nombre_modelo: str = MODELO_ID) -> Tuple[Any, Any]:
+def cargar_modelo(nombre_modelo: str = MODELO_ID) -> tuple[Any, Any]:
     """Carga el tokenizador y el modelo causal de Hugging Face.
 
     Args:
@@ -32,12 +42,20 @@ def cargar_modelo(nombre_modelo: str = MODELO_ID) -> Tuple[Any, Any]:
 
     Returns:
         Tupla con (tokenizer, model) configurados para inferencia.
+
+    Raises:
+        OSError, ValueError: If the selected model and the GPT-2 fallback
+            cannot be loaded.
     """
     try:
         tokenizer = AutoTokenizer.from_pretrained(nombre_modelo)
         model = AutoModelForCausalLM.from_pretrained(nombre_modelo)
-    except Exception:
-        # Fallback a 'gpt2' si el modelo en español no está disponible
+    except (OSError, ValueError) as error:
+        logger.warning(
+            "No se pudo cargar el modelo %s; se intentará usar GPT-2: %s",
+            nombre_modelo,
+            error,
+        )
         tokenizer = AutoTokenizer.from_pretrained("gpt2")
         model = AutoModelForCausalLM.from_pretrained("gpt2")
     model.eval()
@@ -54,11 +72,18 @@ def calcular_perplejidad(texto: str, tokenizer: Any, model: Any) -> float:
 
     Returns:
         Valor de perplejidad como número de punto flotante.
+
+    Raises:
+        Exceptions raised by the tokenizer or model: Propagated if inference fails.
     """
     encodings = tokenizer(texto, return_tensors="pt")
     input_ids = encodings.input_ids
     # Si el texto excede el contexto máximo del modelo, truncamos los tokens
-    max_len = getattr(model.config, "n_positions", 1024)
+    max_len = getattr(
+        model.config,
+        "n_positions",
+        LONGITUD_CONTEXTO_MODELO_POR_DEFECTO,
+    )
     if input_ids.shape[1] > max_len:
         input_ids = input_ids[:, :max_len]
     with torch.no_grad():
@@ -67,7 +92,7 @@ def calcular_perplejidad(texto: str, tokenizer: Any, model: Any) -> float:
     return round(float(torch.exp(loss).item()), 2)
 
 
-def dividir_en_oraciones(texto: str) -> List[str]:
+def dividir_en_oraciones(texto: str) -> list[str]:
     """Divide un texto en oraciones válidas ignorando fragmentos demasiado cortos.
 
     Args:
@@ -77,7 +102,7 @@ def dividir_en_oraciones(texto: str) -> List[str]:
         Lista de oraciones con al menos MIN_PALABRAS_ORACION palabras.
     """
     partes = re.split(r"(?<=[.!?])\s+", texto.strip())
-    oraciones: List[str] = []
+    oraciones: list[str] = []
     for parte in partes:
         oracion = parte.strip()
         # Ignora oraciones demasiado cortas para medir perplejidad útil
@@ -86,7 +111,7 @@ def dividir_en_oraciones(texto: str) -> List[str]:
     return oraciones
 
 
-def calcular_variabilidad(perplejidades: List[float]) -> float:
+def calcular_variabilidad(perplejidades: list[float]) -> float:
     """Calcula la variabilidad (burstiness) como la desviación estándar.
 
     Si el texto tiene menos de 2 oraciones válidas, la variabilidad es 0.0
@@ -103,7 +128,11 @@ def calcular_variabilidad(perplejidades: List[float]) -> float:
     return round(float(statistics.stdev(perplejidades)), 2)
 
 
-def calcular_puntuacion_ia(ppl: float, variabilidad: float, num_oraciones: int) -> Tuple[float, str]:
+def calcular_puntuacion_ia(
+    ppl: float,
+    variabilidad: float,
+    num_oraciones: int,
+) -> tuple[float, str]:
     """Calcula la puntuación (0-100) y nivel de probabilidad estimada de IA.
 
     Args:
@@ -115,19 +144,36 @@ def calcular_puntuacion_ia(ppl: float, variabilidad: float, num_oraciones: int) 
         Tupla con la puntuación calculada y el nivel cualitativo.
     """
     # Mapeo heurístico inverso: menor perplejidad implica mayor probabilidad IA
-    score_ppl = max(0.0, min(100.0, (UMBRAL_PPL_ALTA - ppl) / (UMBRAL_PPL_ALTA - UMBRAL_PPL_BAJA) * 100.0))
+    rango_ppl = UMBRAL_PPL_ALTA - UMBRAL_PPL_BAJA
+    score_ppl = max(
+        0.0,
+        min(100.0, (UMBRAL_PPL_ALTA - ppl) / rango_ppl * 100.0),
+    )
     if num_oraciones >= 2:
-        score_var = max(0.0, min(100.0, (UMBRAL_VAR_ALTA - variabilidad) / (UMBRAL_VAR_ALTA - UMBRAL_VAR_BAJA) * 100.0))
-        puntuacion = (score_ppl * 0.7) + (score_var * 0.3)
+        rango_var = UMBRAL_VAR_ALTA - UMBRAL_VAR_BAJA
+        score_var = max(
+            0.0,
+            min(100.0, (UMBRAL_VAR_ALTA - variabilidad) / rango_var * 100.0),
+        )
+        puntuacion = (
+            score_ppl * PESO_PUNTUACION_PERPLEJIDAD
+            + score_var * PESO_PUNTUACION_VARIABILIDAD
+        )
     else:
         # Menos de 2 oraciones válidas: se basa solo en perplejidad
         puntuacion = score_ppl
     puntuacion = round(puntuacion, 2)
-    nivel = "alto" if puntuacion >= 70.0 else ("medio" if puntuacion >= 35.0 else "bajo")
+    nivel = (
+        "alto"
+        if puntuacion >= UMBRAL_PUNTUACION_ALTA
+        else "medio"
+        if puntuacion >= UMBRAL_PUNTUACION_MEDIA
+        else "bajo"
+    )
     return puntuacion, nivel
 
 
-def obtener_sospechosas(oraciones_ppl: List[Tuple[str, float]]) -> List[str]:
+def obtener_sospechosas(oraciones_ppl: list[tuple[str, float]]) -> list[str]:
     """Retorna las 3 oraciones más predecibles (menor perplejidad).
 
     Args:
@@ -137,10 +183,13 @@ def obtener_sospechosas(oraciones_ppl: List[Tuple[str, float]]) -> List[str]:
         Lista de hasta 3 textos de oraciones más sospechosas.
     """
     ordenadas = sorted(oraciones_ppl, key=lambda x: x[1])
-    return [oracion for oracion, _ in ordenadas[:3]]
+    return [
+        oracion
+        for oracion, _ in ordenadas[:MAX_ORACIONES_SOSPECHOSAS]
+    ]
 
 
-def analizar_texto(texto: str, tokenizer: Any, model: Any) -> Dict[str, Any]:
+def analizar_texto(texto: str, tokenizer: Any, model: Any) -> dict[str, Any]:
     """Ejecuta el análisis completo de perplejidad, burstiness y estimación de IA.
 
     Args:

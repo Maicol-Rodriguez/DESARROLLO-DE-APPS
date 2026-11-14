@@ -13,11 +13,16 @@ class TestDetectorIA(unittest.TestCase):
     def test_texto_valido(self) -> None:
         """Verifica que un texto válido retorne la estructura completa esperada."""
         texto_valido = (
-            "La inteligencia artificial ha transformado el desarrollo de software moderno en las últimas décadas. "
-            "Los modelos de lenguaje actuales son capaces de producir oraciones fluidas, gramaticalmente correctas y complejas. "
-            "No obstante, este tipo de herramientas tiende a generar patrones repetitivos con baja perplejidad y estilo homogéneo. "
-            "Por este motivo, nuestro proyecto académico calcula métricas estadísticas para ofrecer una estimación orientativa "
-            "que nunca debe considerarse como una prueba definitiva de autoría humana o sintética en ningún entorno académico."
+            "La inteligencia artificial ha transformado el desarrollo de "
+            "software moderno en las últimas décadas. "
+            "Los modelos de lenguaje actuales son capaces de producir "
+            "oraciones fluidas, gramaticalmente correctas y complejas. "
+            "No obstante, este tipo de herramientas tiende a generar patrones "
+            "repetitivos con baja perplejidad y estilo homogéneo. "
+            "Por este motivo, nuestro proyecto académico calcula métricas "
+            "estadísticas para ofrecer una estimación orientativa que nunca "
+            "debe considerarse como una prueba definitiva de autoría humana "
+            "o sintética en ningún entorno académico."
         )
         mock_tok = MagicMock()
         mock_mod = MagicMock()

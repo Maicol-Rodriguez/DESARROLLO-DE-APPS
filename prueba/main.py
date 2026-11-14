@@ -1,35 +1,53 @@
 """Aplicación FastAPI para la estimación de autoría de textos por IA."""
+import asyncio
+import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from io import BytesIO
-import os
-from typing import Any, Dict, List
+from typing import Annotated, Any, AsyncGenerator
 from uuid import uuid4
 from zipfile import BadZipFile, ZipFile
 
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import (
+    BackgroundTasks,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Request,
+    UploadFile,
+)
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
 
-from detector import analizar_texto, cargar_modelo
 from api_constants import (
     ANALYSIS_FAILURE_MESSAGE,
     CHAT_GENERATION_FAILURE_MESSAGE,
+    DEFAULT_ALLOWED_ORIGINS,
     DOCUMENT_TOO_LARGE_MESSAGE,
     EXPIRED_SESSION_MESSAGE,
+    INVALID_DOCUMENT_SESSION_MESSAGE,
+    MAX_ANALYSIS_CHARACTERS,
+    MAX_CHAT_MESSAGE_LENGTH,
     MAX_DOCUMENT_BYTES,
+    MIN_ANALYSIS_WORDS,
     SESSION_TTL,
+    STATE_CLEANUP_INTERVAL,
     UNSUPPORTED_FORMAT_MESSAGE,
 )
 from chat_service import generar_respuesta_chat
+from detector import analizar_texto, cargar_modelo
 from document_processing import (
     crear_motivos,
     extraer_texto_documento,
     procesar_documento,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AnalisisRequest(BaseModel):
@@ -39,15 +57,32 @@ class AnalisisRequest(BaseModel):
     @field_validator("texto")
     @classmethod
     def validar_texto(cls, valor: str) -> str:
-        """Valida que el texto no esté vacío y cumpla los límites de palabras y caracteres."""
+        """Validate text length and minimum word count.
+
+        Args:
+            valor: User-provided text to validate.
+
+        Returns:
+            The original text if it satisfies the request constraints.
+
+        Raises:
+            ValueError: If the input is blank, too short, or too long.
+        """
         limpio = valor.strip()
         if not limpio:
             raise ValueError("El texto no puede estar vacío ni componerse solo de espacios.")
         palabras = limpio.split()
-        if len(palabras) < 50:
-            raise ValueError(f"El texto debe contener al menos 50 palabras (recibidas: {len(palabras)}).")
-        if len(valor) > 5000:
-            raise ValueError(f"El texto no debe superar los 5000 caracteres (recibidos: {len(valor)}).")
+        if len(palabras) < MIN_ANALYSIS_WORDS:
+            raise ValueError(
+                f"El texto debe contener al menos {MIN_ANALYSIS_WORDS} palabras "
+                f"(recibidas: {len(palabras)})."
+            )
+        if len(valor) > MAX_ANALYSIS_CHARACTERS:
+            raise ValueError(
+                f"El texto no debe superar los "
+                f"{MAX_ANALYSIS_CHARACTERS} caracteres "
+                f"(recibidos: {len(valor)})."
+            )
         return valor
 
 
@@ -57,7 +92,7 @@ class AnalisisResponse(BaseModel):
     nivel: str
     perplejidad: float
     variabilidad: float
-    oraciones_sospechosas: List[str]
+    oraciones_sospechosas: list[str]
     aviso: str
 
 
@@ -66,18 +101,109 @@ class ChatMessage(BaseModel):
     session_id: str
     mensaje: str
 
+    @field_validator("mensaje")
+    @classmethod
+    def validar_mensaje(cls, valor: str) -> str:
+        """Limit chat input to a short, single-line question.
+
+        Args:
+            valor: User-provided chat message.
+
+        Returns:
+            The stripped message if it satisfies the size and character limits.
+
+        Raises:
+            ValueError: If the question is blank, too long, or has control characters.
+        """
+        limpio = valor.strip()
+        if not limpio:
+            raise ValueError("El mensaje no puede estar vacío.")
+        if len(limpio) > MAX_CHAT_MESSAGE_LENGTH:
+            raise ValueError(
+                f"El mensaje no debe superar {MAX_CHAT_MESSAGE_LENGTH} caracteres."
+            )
+        if any(ord(caracter) < 32 or ord(caracter) == 127 for caracter in limpio):
+            raise ValueError("El mensaje no puede contener caracteres de control.")
+        return limpio
+
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Ciclo de vida de la aplicación: carga el modelo una sola vez al inicio."""
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Load the model and periodically remove expired in-memory state.
+
+    Args:
+        app: FastAPI application whose model and in-memory state are initialized.
+
+    Yields:
+        ``None`` while the application accepts requests.
+
+    Raises:
+        OSError, ValueError: Propagated model-loading failures.
+    """
     tokenizer, model = cargar_modelo()
     app.state.tokenizer = tokenizer
     app.state.model = model
     app.state.documentos = {}
     app.state.sesiones = {}
-    yield
-    app.state.tokenizer = None
-    app.state.model = None
+    cleaner = asyncio.create_task(_limpiar_estado_periodicamente(app))
+    try:
+        yield
+    finally:
+        cleaner.cancel()
+        try:
+            await cleaner
+        except asyncio.CancelledError:
+            pass
+        app.state.tokenizer = None
+        app.state.model = None
+
+
+def limpiar_estado_expirado(
+    sesiones: dict[str, dict[str, Any]],
+    documentos: dict[str, dict[str, Any]],
+    ahora: datetime | None = None,
+) -> int:
+    """Remove expired sessions and finished documents from their in-memory maps.
+
+    Args:
+        sesiones: Active session records keyed by session ID.
+        documentos: Document records keyed by document ID.
+        ahora: Optional timezone-aware timestamp, useful for deterministic tests.
+
+    Returns:
+        Number of session and document records removed.
+    """
+    instante = ahora or datetime.now(timezone.utc)
+    eliminados = 0
+    for session_id, sesion in list(sesiones.items()):
+        if sesion["expira"] <= instante:
+            sesiones.pop(session_id, None)
+            eliminados += 1
+
+    for document_id, documento in list(documentos.items()):
+        expira = documento.get("expira")
+        if (
+            expira is not None
+            and expira <= instante
+            and documento.get("estado") != "procesando"
+        ):
+            documentos.pop(document_id, None)
+            eliminados += 1
+    return eliminados
+
+
+async def _limpiar_estado_periodicamente(app: FastAPI) -> None:
+    """Periodically purge expired records for the running application.
+
+    Args:
+        app: Application holding the in-memory session and document records.
+
+    Returns:
+        Never returns during normal operation; cancellation stops the task.
+    """
+    while True:
+        await asyncio.sleep(STATE_CLEANUP_INTERVAL.total_seconds())
+        limpiar_estado_expirado(app.state.sesiones, app.state.documentos)
 
 
 app = FastAPI(
@@ -89,17 +215,28 @@ app = FastAPI(
 
 
 def configurar_cors(aplicacion: FastAPI) -> None:
-    """Configura el middleware de CORS leyendo la variable ALLOWED_ORIGINS.
+    """Configure CORS using ALLOWED_ORIGINS or the local development origins.
 
     Args:
-        aplicacion: Instancia de FastAPI a configurar.
+        aplicacion: FastAPI application to configure.
+
+    Notes:
+        Wildcard origins disable credentialed CORS responses.
+
+    Returns:
+        ``None`` after adding the CORS middleware.
     """
-    origenes_raw = os.getenv("ALLOWED_ORIGINS", "*")
-    origenes = [o.strip() for o in origenes_raw.split(",") if o.strip()]
+    origenes_raw = os.getenv("ALLOWED_ORIGINS")
+    origenes = (
+        [origen.strip() for origen in origenes_raw.split(",") if origen.strip()]
+        if origenes_raw is not None
+        else list(DEFAULT_ALLOWED_ORIGINS)
+    )
+    permite_credenciales = "*" not in origenes
     aplicacion.add_middleware(
         CORSMiddleware,
         allow_origins=origenes,
-        allow_credentials=True,
+        allow_credentials=permite_credenciales,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -110,7 +247,7 @@ app.state.documentos = {}
 app.state.sesiones = {}
 
 
-def traducir_error_pydantic(err: Dict[str, Any]) -> str:
+def traducir_error_pydantic(err: dict[str, Any]) -> str:
     """Traduce un error de validación de Pydantic a un mensaje legible en español.
 
     Args:
@@ -132,17 +269,21 @@ def traducir_error_pydantic(err: Dict[str, Any]) -> str:
 
 
 @app.exception_handler(RequestValidationError)
-async def manejador_errores_validacion(request: Request, exc: RequestValidationError) -> JSONResponse:
-    """Retorna respuesta HTTP 422 con mensajes en español ante errores de validación.
+async def manejador_errores_validacion(
+    _request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
+    """Return HTTP 422 with Spanish messages for request validation errors.
 
     Args:
-        request: Petición HTTP entrante.
-        exc: Excepción de validación.
+        _request: Incoming request required by FastAPI's exception handler.
+        exc: Pydantic/FastAPI request validation exception.
 
     Returns:
-        JSONResponse con código 422 y detalles en español.
+        JSONResponse with status 422 and localized validation details.
+
     """
-    detalles = [traducir_error_pydantic(e) for e in exc.errors()]
+    detalles = [traducir_error_pydantic(error) for error in exc.errors()]
     return JSONResponse(
         status_code=422,
         content={"error": "Datos de entrada inválidos", "detalles": detalles},
@@ -150,7 +291,10 @@ async def manejador_errores_validacion(request: Request, exc: RequestValidationE
 
 
 @app.post("/analizar", response_model=AnalisisResponse)
-async def ruta_analizar(peticion: AnalisisRequest, request: Request) -> Dict[str, Any]:
+async def ruta_analizar(
+    peticion: AnalisisRequest,
+    request: Request,
+) -> dict[str, Any]:
     """Endpoint principal para analizar la probabilidad de IA en un texto.
 
     Args:
@@ -159,6 +303,9 @@ async def ruta_analizar(peticion: AnalisisRequest, request: Request) -> Dict[str
 
     Returns:
         Métricas calculadas y aviso legal.
+
+    Raises:
+        Exceptions from model inference are propagated to FastAPI.
     """
     # Privacidad: no guardamos ni imprimimos en logs el texto del usuario
     tokenizer = request.app.state.tokenizer
@@ -170,9 +317,23 @@ async def ruta_analizar(peticion: AnalisisRequest, request: Request) -> Dict[str
 async def subir_documento(
     request: Request,
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-) -> Dict[str, str]:
-    """Valida un PDF/DOCX de hasta 5 MiB y programa su análisis."""
+    file: Annotated[UploadFile, File(...)],
+) -> dict[str, str]:
+    """Validate a PDF/DOCX upload and schedule analysis.
+
+    Args:
+        request: HTTP request providing app state.
+        background_tasks: FastAPI task queue used for document processing.
+        file: Uploaded PDF or DOCX.
+
+    Returns:
+        Document ID, session ID, and initial processing state.
+
+    Raises:
+        HTTPException: With status 413 for oversized files or 415 for an
+            unsupported/invalid file.
+    """
+    limpiar_estado_expirado(request.app.state.sesiones, request.app.state.documentos)
     contenido = await file.read(MAX_DOCUMENT_BYTES + 1)
     if len(contenido) > MAX_DOCUMENT_BYTES:
         raise HTTPException(status_code=413, detail=DOCUMENT_TOO_LARGE_MESSAGE)
@@ -193,10 +354,14 @@ async def subir_documento(
 
     document_id = uuid4().hex
     session_id = uuid4().hex
-    request.app.state.documentos[document_id] = {"estado": "procesando"}
+    expira = datetime.now(timezone.utc) + SESSION_TTL
+    request.app.state.documentos[document_id] = {
+        "estado": "procesando",
+        "expira": expira,
+    }
     request.app.state.sesiones[session_id] = {
         "document_id": document_id,
-        "expira": datetime.now(timezone.utc) + SESSION_TTL,
+        "expira": expira,
     }
     background_tasks.add_task(
         procesar_documento,
@@ -217,8 +382,36 @@ async def subir_documento(
 
 
 @app.get("/api/v1/documentos/{document_id}/resultado")
-async def obtener_resultado(document_id: str, request: Request) -> Dict[str, Any]:
-    """Devuelve las métricas del análisis o el estado explícito del proceso."""
+async def obtener_resultado(
+    document_id: str,
+    request: Request,
+    session_id: Annotated[str | None, Header(alias="X-Session-Id")] = None,
+) -> dict[str, Any]:
+    """Return a document result to its active owning session.
+
+    Args:
+        document_id: Document whose result is requested.
+        request: HTTP request providing session and document state.
+        session_id: Owning active session from the ``X-Session-Id`` header.
+
+    Returns:
+        Public analysis metrics and derived explanatory reasons.
+
+    Raises:
+        HTTPException: With status 401 for a missing/expired session, 404 for
+            an unknown or unowned document, 202 while processing, or 503 if
+            analysis failed.
+    """
+    if session_id is None:
+        raise HTTPException(status_code=401, detail=INVALID_DOCUMENT_SESSION_MESSAGE)
+
+    sesion = request.app.state.sesiones.get(session_id)
+    if sesion is None or sesion["expira"] <= datetime.now(timezone.utc):
+        request.app.state.sesiones.pop(session_id, None)
+        raise HTTPException(status_code=401, detail=INVALID_DOCUMENT_SESSION_MESSAGE)
+    if sesion["document_id"] != document_id:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
     documento = request.app.state.documentos.get(document_id)
     if documento is None:
         raise HTTPException(status_code=404, detail="Documento no encontrado")
@@ -240,8 +433,20 @@ async def obtener_resultado(document_id: str, request: Request) -> Dict[str, Any
 async def enviar_mensaje_chat(
     peticion: ChatMessage,
     request: Request,
-) -> Dict[str, Any]:
-    """Responde preguntas sobre el análisis asociado a una sesión vigente."""
+) -> dict[str, Any]:
+    """Respond to a question associated with an active session.
+
+    Args:
+        peticion: Validated session ID and chat question.
+        request: HTTP request providing session, document, and model state.
+
+    Returns:
+        Generated explanation and the reasons derived from its analysis.
+
+    Raises:
+        HTTPException: With status 401 for an expired session or 503 if the
+            document/model is unavailable.
+    """
     sesion = request.app.state.sesiones.get(peticion.session_id)
     ahora = datetime.now(timezone.utc)
     if sesion is None or sesion["expira"] <= ahora:

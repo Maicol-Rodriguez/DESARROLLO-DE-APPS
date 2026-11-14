@@ -5,13 +5,14 @@ from io import BytesIO
 
 import pytest
 import torch
-from fastapi.testclient import TestClient
 from docx import Document
+from fastapi.testclient import TestClient
+from pydantic import ValidationError
 from pypdf import PdfWriter
 
+import main
 from chat_service import generar_respuesta_chat
 from document_processing import extraer_texto_documento
-import main
 
 
 @pytest.fixture
@@ -149,14 +150,101 @@ def test_chat_service_genera_respuesta_con_el_modelo_local() -> None:
 
     tokenizer = TokenizadorSimulado()
     response = generar_respuesta_chat(
-        "¿Por qué este trabajo tiene 80%?",
+        '¿Por qué "este trabajo" tiene 80%?',
         {"puntuacion": 80, "perplejidad": 30, "variabilidad": 5},
         tokenizer,
         ModeloSimulado(),
     )
 
     assert response == "La estimación se basa en los patrones medidos."
-    assert "¿Por qué este trabajo tiene 80%?" in tokenizer.prompt
+    assert r'\"este trabajo\"' in tokenizer.prompt
+
+
+@pytest.mark.parametrize(
+    "mensaje",
+    ["", " " * 3, "a" * 501, "primera línea\nsegunda línea"],
+)
+def test_chat_rechaza_mensaje_vacio_largo_o_con_control(mensaje: str) -> None:
+    with pytest.raises(ValidationError):
+        main.ChatMessage(session_id="sesion-valida", mensaje=mensaje)
+
+
+def test_chat_acepta_mensaje_corto_de_una_linea() -> None:
+    assert main.ChatMessage(
+        session_id="sesion-valida",
+        mensaje="  ¿Por qué este resultado?  ",
+    ).mensaje == "¿Por qué este resultado?"
+
+
+def test_cors_usa_origenes_locales_y_credenciales_por_defecto(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from fastapi import FastAPI
+
+    monkeypatch.delenv("ALLOWED_ORIGINS", raising=False)
+    test_app = FastAPI()
+
+    main.configurar_cors(test_app)
+
+    options = test_app.user_middleware[0].kwargs
+    assert options["allow_origins"] == [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+        "http://localhost:8100",
+        "http://127.0.0.1:8100",
+    ]
+    assert options["allow_credentials"] is True
+
+
+def test_cors_desactiva_credenciales_con_origen_comodin(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from fastapi import FastAPI
+
+    monkeypatch.setenv("ALLOWED_ORIGINS", "*")
+    test_app = FastAPI()
+
+    main.configurar_cors(test_app)
+
+    options = test_app.user_middleware[0].kwargs
+    assert options["allow_origins"] == ["*"]
+    assert options["allow_credentials"] is False
+
+
+def test_limpieza_elimina_sesiones_y_documentos_expirados() -> None:
+    ahora = datetime.now(timezone.utc)
+    sesiones = {
+        "sesion-expirada": {
+            "document_id": "doc-expirado",
+            "expira": ahora - timedelta(seconds=1),
+        },
+        "sesion-vigente": {
+            "document_id": "doc-vigente",
+            "expira": ahora + timedelta(minutes=1),
+        },
+    }
+    documentos = {
+        "doc-expirado": {
+            "estado": "completado",
+            "expira": ahora - timedelta(seconds=1),
+        },
+        "doc-procesando": {
+            "estado": "procesando",
+            "expira": ahora - timedelta(seconds=1),
+        },
+        "doc-vigente": {
+            "estado": "completado",
+            "expira": ahora + timedelta(minutes=1),
+        },
+    }
+
+    eliminados = main.limpiar_estado_expirado(sesiones, documentos, ahora)
+
+    assert eliminados == 2
+    assert "sesion-expirada" not in sesiones
+    assert "doc-expirado" not in documentos
+    assert "doc-procesando" in documentos
+    assert "doc-vigente" in documentos
 
 
 def test_subir_archivo_exe_devuelve_error_415(client: TestClient) -> None:
@@ -180,11 +268,61 @@ def test_resultado_devuelve_porcentaje_de_ia(
         files={"file": ("informe.pdf", b"%PDF-1.4\ncontenido", "application/pdf")},
     )
     document_id = carga.json()["document_id"]
+    session_id = carga.json()["session_id"]
 
-    response = client.get(f"/api/v1/documentos/{document_id}/resultado")
+    response = client.get(
+        f"/api/v1/documentos/{document_id}/resultado",
+        headers={"X-Session-Id": session_id},
+    )
 
     assert response.status_code == 200
     assert response.json()["porcentaje_ia"] == 80
+
+
+def test_resultado_rechaza_solicitud_sin_sesion(
+    client: TestClient,
+) -> None:
+    main.app.state.documentos["doc-privado"] = {"estado": "completado", "resultado": {}}
+
+    response = client.get("/api/v1/documentos/doc-privado/resultado")
+
+    assert response.status_code == 401
+
+
+def test_resultado_rechaza_sesion_caducada(
+    client: TestClient,
+) -> None:
+    main.app.state.documentos["doc-caducado"] = {"estado": "completado", "resultado": {}}
+    main.app.state.sesiones["sesion-caducada"] = {
+        "document_id": "doc-caducado",
+        "expira": datetime.now(timezone.utc) - timedelta(seconds=1),
+    }
+
+    response = client.get(
+        "/api/v1/documentos/doc-caducado/resultado",
+        headers={"X-Session-Id": "sesion-caducada"},
+    )
+
+    assert response.status_code == 401
+    assert "sesion-caducada" not in main.app.state.sesiones
+
+
+def test_resultado_no_expone_documento_de_otra_sesion(
+    client: TestClient,
+) -> None:
+    main.app.state.documentos["doc-ajeno"] = {"estado": "completado", "resultado": {}}
+    main.app.state.sesiones["sesion-propia"] = {
+        "document_id": "doc-propio",
+        "expira": datetime.now(timezone.utc) + timedelta(minutes=15),
+    }
+
+    response = client.get(
+        "/api/v1/documentos/doc-ajeno/resultado",
+        headers={"X-Session-Id": "sesion-propia"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Documento no encontrado"
 
 
 def test_scanner_rechaza_texto_demasiado_corto(client: TestClient) -> None:
@@ -213,8 +351,12 @@ def test_resultado_informa_fallo_del_servidor_de_analisis(
         files={"file": ("informe.pdf", b"%PDF-1.4\ncontenido", "application/pdf")},
     )
     document_id = carga.json()["document_id"]
+    session_id = carga.json()["session_id"]
 
-    response = client.get(f"/api/v1/documentos/{document_id}/resultado")
+    response = client.get(
+        f"/api/v1/documentos/{document_id}/resultado",
+        headers={"X-Session-Id": session_id},
+    )
 
     assert response.status_code == 503
     assert response.json()["detail"] == (

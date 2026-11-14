@@ -2,7 +2,7 @@
 
 from io import BytesIO
 import logging
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable
 from zipfile import BadZipFile
 
 from docx import Document
@@ -17,7 +17,19 @@ logger = logging.getLogger(__name__)
 
 
 def extraer_texto_documento(contenido: bytes, extension: str) -> str:
-    """Extrae texto de un archivo PDF o DOCX ya validado."""
+    """Extract text from validated PDF or DOCX bytes.
+
+    Args:
+        contenido: Binary file contents.
+        extension: Lowercase file extension (``.pdf`` or ``.docx``).
+
+    Returns:
+        Extracted paragraphs joined with newline characters.
+
+    Raises:
+        ValueError: If the extension is unsupported.
+        OSError, BadZipFile, PdfReadError: If the file cannot be parsed.
+    """
     if extension == ".pdf":
         lector = PdfReader(BytesIO(contenido))
         return "\n".join(pagina.extract_text() or "" for pagina in lector.pages)
@@ -34,8 +46,18 @@ def extraer_texto_documento(contenido: bytes, extension: str) -> str:
     raise ValueError(f"Extensión de documento no soportada: {extension}")
 
 
-def crear_motivos(resultado: Dict[str, Any]) -> List[str]:
-    """Construye razones lingüísticas verificables a partir de las métricas."""
+def crear_motivos(resultado: dict[str, Any]) -> list[str]:
+    """Build explanatory reasons from analysis metrics.
+
+    Args:
+        resultado: Analysis result with ``perplejidad`` and ``variabilidad``.
+
+    Returns:
+        Two reasons derived from those metrics.
+
+    Raises:
+        KeyError, TypeError, ValueError: If metrics are missing or invalid.
+    """
     perplejidad = float(resultado["perplejidad"])
     variabilidad = float(resultado["variabilidad"])
     motivo_perplejidad = (
@@ -58,13 +80,30 @@ def procesar_documento(
     document_id: str,
     contenido: bytes,
     extension: str,
-    documentos: Dict[str, Dict[str, Any]],
+    documentos: dict[str, dict[str, Any]],
     tokenizer: Any,
     model: Any,
     extraer_texto: Callable[[bytes, str], str],
-    analizar: Callable[[str, Any, Any], Dict[str, Any]],
+    analizar: Callable[[str, Any, Any], dict[str, Any]],
 ) -> None:
-    """Analiza un documento en segundo plano y conserva explícitamente su estado."""
+    """Analyze a document and store its success or error state.
+
+    Args:
+        document_id: Document record identifier.
+        contenido: File bytes to parse.
+        extension: Validated file extension.
+        documentos: Shared document records.
+        tokenizer: Loaded model tokenizer.
+        model: Loaded causal model.
+        extraer_texto: File-to-text extraction function.
+        analizar: Text analysis function.
+
+    Returns:
+        ``None``; updates the document record in place.
+
+    Raises:
+        KeyError: If the shared document entry was removed unexpectedly.
+    """
     try:
         texto = extraer_texto(contenido, extension)
         if not texto.strip():
