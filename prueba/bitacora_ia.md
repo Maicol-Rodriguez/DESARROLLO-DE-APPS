@@ -8,6 +8,32 @@
 | 2026-11-07 | «Explicación vía chatbot con al menos dos razones y error por sesión caducada». | AJUSTADA | Se reutilizó el modelo local configurado por `MODELO_ID`, sin añadir un proveedor externo no definido. Las razones se calculan directamente desde perplejidad y variabilidad para que sean verificables. | Prueba del generador local simulado, prueba de dos razones y prueba HTTP 401 por expiración. |
 | 2026-11-07 | «Ignora `.venv/`, `__pycache__/`, `.pytest_cache/`, `.env` e historias de compilación». | ACEPTADA | Se añadieron reglas al `.gitignore` del proyecto y se quitaron del índice los bytecodes que ya estaban rastreados; los archivos locales se conservaron. | `git check-ignore -v` confirmó reglas para `.venv` y `__pycache__`. |
 | 2026-11-07 | «Refactoriza constantes, umbrales y lógica del procesador». | ACEPTADA | Los límites y mensajes se centralizaron, se reutilizaron umbrales existentes del detector y se separaron procesamiento documental y generación de chat en módulos. | Suite completa después del refactor: `16 passed`. |
+| 2026-11-14 | «Revisa AppSec y calidad: inyección, secretos, contraseñas, acceso, dependencias y falsos positivos». | AJUSTADA | Se contrastaron las observaciones contra el código de `prueba`: se confirmaron IDOR, CORS permisivo, mensaje de chat sin límites, `logger` indefinido, valores Ruff y falta de pines. No hay SQL ni contraseñas de usuarios. El informe del agente también contenía rutas de carpetas vecinas y no se aplicó a este proyecto. | Inspección directa, pruebas de abuso y Ruff; `pip-audit` encontró primero 17 CVE asociadas a `filelock`, motivando actualizar Python mínimo. |
+| 2026-11-14 | «Corrige los hallazgos confirmados sin debilitar las pruebas existentes». | ACEPTADA | Se vinculó resultado a sesión propietaria vigente, se validó/encapsuló el texto de chat, se cerró CORS wildcard con credenciales, se definió el logger, se agregó limpieza periódica de estado expirado y se documentó/refactorizó el código. Los contratos existentes ahora envían la cabecera exigida; se agregaron pruebas de abuso nuevas. | En entorno limpio Python 3.11.9: `pytest -q` 27 passed, `ruff check .` sin avisos y ambos `pip-audit` sin vulnerabilidades conocidas. |
+| 2026-11-14 | «Usa el agente security-review y registra su participación». | ACEPTADA | El agente detectó problemas en aplicaciones hermanas del repositorio (`Uber.WEB`, `camara_ionic` y una práctica aislada), no en el backend `prueba`. Se delimitó el alcance y se revisó el backend directamente; no se integraron cambios del agente ni se abrió una rama de código. | Informe del agente leído y comparado con rutas/imports del proyecto `prueba`; cambios locales revisados y probados directamente. |
+
+## Reflexión final
+
+Copilot ayudó a detectar que el contrato propuesto no correspondía a rutas existentes.
+pytest hizo observables las diferencias desde RED, sin descargar el modelo pesado.
+El ciclo TDD permitió implementar las rutas contra criterios medibles y repetibles.
+La separación de procesamiento y chat facilitó probar componentes sin llamadas externas.
+Los mocks mantuvieron las pruebas rápidas y evitaron depender de inferencia real.
+La solución en memoria es útil para el prototipo, pero no sustituye persistencia de producción.
+
+
+## Declaración del uso de Inteligencia Artificial:
+
+Durante el desarrollo de este proyecto se utilizó GitHub Copilot como asistente de código inteligente e interacción vía chat. La herramienta se empleó para:
+
+Inspeccionar el repositorio y proponer la estructura inicial de la suite de pruebas automatizadas con pytest y TestClient.
+
+Generar sugerencias de código para la resolución de errores detectados en la fase RED y su posterior paso a GREEN.
+
+Identificar oportunidades de mejora en la fase REFACTOR, centralizando constantes de error y umbrales de detección.
+
+Todo el código sugerido por la IA fue auditado, modificado y validado mediante la ejecución continua de la suite de pruebas, garantizando un uso crítico y responsable sin aceptar soluciones que comprometieran la arquitectura o la seguridad del proyecto.
+
 
 ## Reflexión final
 
