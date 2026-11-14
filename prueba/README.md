@@ -1,130 +1,86 @@
-# Detector de texto generado por IA
+# Qué es
 
-Proyecto académico con una API FastAPI para analizar texto y una interfaz web estática en `static/`. Además del endpoint existente `POST /analizar`, la API incluye contratos para carga de documentos, consulta de resultados y explicación por chat.
+Detector académico de textos que estima, mediante métricas de un modelo causal, la probabilidad heurística de autoría por IA. Expone una API FastAPI para analizar texto, cargar archivos PDF/DOCX y explicar resultados. La puntuación no demuestra quién escribió un texto.
 
-## Funcionalidades Principales (HU-01, HU-03, HU-04)
+## Requisitos
 
-### Criterios de aceptación
+- Windows, macOS o Linux.
+- Python 3.11 de 64 bits.
+- Acceso a Internet en el primer inicio para descargar los pesos del modelo Hugging Face.
+- Memoria suficiente para ejecutar PyTorch y el modelo seleccionado.
 
-```gherkin
-Característica: Carga de documentos (HU-01)
-  Escenario: Cargar un PDF válido de hasta 5 MiB
-    Dado un archivo PDF válido de tamaño menor o igual a 5 MiB
-    Cuando se envía a POST /api/v1/documentos/upload
-    Entonces la API responde 201 con identificadores de documento y sesión, y estado "procesando"
-  Escenario: Rechazar un formato no soportado
-    Dado un archivo con extensión .exe
-    Cuando se envía a POST /api/v1/documentos/upload
-    Entonces la API responde 415 con el mensaje de formato no soportado
+## Instalación
 
-Característica: Resultado del análisis (HU-03)
-  Escenario: Consultar el porcentaje de detección
-    Dado un documento cuyo análisis está disponible
-    Cuando se consulta GET /api/v1/documentos/{id}/resultado
-    Entonces la respuesta incluye el porcentaje estimado de IA
-  Escenario: Fallo del servidor de análisis
-    Dado que el servidor de análisis no está disponible
-    Cuando se consulta el resultado
-    Entonces la API responde 503 y comunica el fallo de conexión
-  Escenario: Texto demasiado corto en el scanner existente
-    Cuando se envía a POST /analizar un texto de menos de 50 palabras
-    Entonces la API responde 422 con el requisito mínimo
+Desde la carpeta del proyecto, crea un entorno limpio e instala las dependencias fijadas:
 
-Característica: Explicación vía chatbot (HU-04)
-  Escenario: Explicar el resultado con razones lingüísticas
-    Dado un mensaje en una sesión activa sobre el porcentaje obtenido
-    Cuando se envía a POST /api/v1/chat/mensaje
-    Entonces la respuesta incluye al menos dos razones lingüísticas
-  Escenario: Rechazar una sesión caducada
-    Cuando se envía un mensaje desde una sesión caducada
-    Entonces la API responde 401 y solicita recargar la página
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 ```
 
-### Contratos de la API
+`.env.example` documenta las variables `MODELO_ID` y `ALLOWED_ORIGINS`; no se carga automáticamente como archivo `.env`. En PowerShell, configura las variables necesarias antes de iniciar la aplicación:
 
-| Método y ruta | Solicitud | Respuesta esperada |
-|---|---|---|
-| `POST /api/v1/documentos/upload` | `multipart/form-data`, campo `file` | `201`, `document_id`, `session_id` y estado `procesando` |
-| `GET /api/v1/documentos/{id}/resultado` | Identificador en la ruta | `200` con `porcentaje_ia` y `motivos`, `202` mientras procesa; `503` si falla el análisis |
-| `POST /api/v1/chat/mensaje` | JSON con `session_id` y `mensaje` | `200` con respuesta y razones; `401` si expiró la sesión |
-
-Los errores de estas rutas usan un objeto JSON con `detail`. El endpoint existente `POST /analizar` conserva su formato de validación actual.
-
-### Ejemplos JSON
-
-La carga usa `multipart/form-data` (no JSON):
-
-```http
-POST /api/v1/documentos/upload
-Content-Type: multipart/form-data
-
-file=@informe.pdf
+```powershell
+$env:MODELO_ID = "datificate/gpt2-small-spanish"
+$env:ALLOWED_ORIGINS = "http://localhost:4200,http://localhost:8100"
 ```
 
-Su respuesta JSON:
+El `.env` local está excluido por Git y no debe contener valores compartidos ni subirse al repositorio.
 
-```json
-{
-  "document_id": "doc-123",
-  "session_id": "sesion-456",
-  "estado": "procesando"
-}
+## Ejecución
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn main:app --reload
 ```
 
-Consulta `GET /api/v1/documentos/doc-123/resultado`; respuesta:
+La interfaz estática se sirve en `http://127.0.0.1:8000`. Los endpoints principales son:
 
-```json
-{
-  "document_id": "doc-123",
-  "porcentaje_ia": 80,
-  "nivel": "alto",
-  "motivos": [
-    "Perplejidad baja en la secuencia de palabras.",
-    "Variabilidad reducida entre las oraciones."
-  ]
-}
-```
+| Método y ruta | Solicitud y control |
+|---|---|
+| `POST /analizar` | JSON con `texto` (50 palabras como mínimo, 5000 caracteres como máximo). |
+| `POST /api/v1/documentos/upload` | `multipart/form-data`, campo `file`; admite PDF/DOCX de hasta 5 MiB. Devuelve `document_id` y `session_id`. |
+| `GET /api/v1/documentos/{document_id}/resultado` | Requiere `X-Session-Id` de la sesión vigente propietaria del documento. |
+| `POST /api/v1/chat/mensaje` | JSON con `session_id` y `mensaje`; la sesión debe estar vigente. |
 
-Solicitud y respuesta del chatbot:
-
-```json
-{
-  "session_id": "sesion-activa",
-  "mensaje": "¿Por qué este trabajo tiene 80%?"
-}
-```
-
-```json
-{
-  "respuesta": "La estimación se basa en patrones observados en el texto.",
-  "razones": [
-    "Perplejidad baja en la secuencia de palabras.",
-    "Variabilidad reducida entre las oraciones."
-  ]
-}
-```
-
-### Supuestos y casos límite
-
-- El límite de carga es inclusivo: se aceptan hasta `5 * 1024 * 1024` bytes (5 MiB); un tamaño mayor debe rechazarse.
-- El formulario utiliza el campo `file`; se aceptan PDF y Word `.docx`. Se verifica la firma/estructura del archivo, no solo su extensión.
-- La respuesta `procesando` permite que una interfaz muestre progreso mientras se prepara el análisis; no reporta progreso porcentual.
-- Documentos, resultados y sesiones se guardan en memoria y se pierden al reiniciar el proceso o si se ejecutan varios workers. Las sesiones vencen 15 minutos después de su creación.
-- El chatbot reutiliza el modelo causal configurado por `MODELO_ID`; no se conecta a un proveedor externo y el modelo no está especializado en diálogo.
-- El scanner `POST /analizar` existente rechaza entradas con menos de 50 palabras o más de 5000 caracteres con HTTP 422.
-- La estimación estadística no demuestra la autoría humana o por IA; se debe comunicar como orientativa.
+Las sesiones anónimas son credenciales portadoras: conserva el `session_id` privado. CORS permite por defecto los orígenes locales documentados; ajusta `ALLOWED_ORIGINS` para otros despliegues.
 
 ## Pruebas
 
-Instala las dependencias de desarrollo y ejecuta la suite desde esta carpeta:
+Desde una instalación limpia, instala las dependencias de desarrollo y ejecuta:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\ruff.exe check .
+.\.venv\Scripts\pip-audit.exe -r requirements.txt
+.\.venv\Scripts\pip-audit.exe -r requirements-dev.txt
 ```
 
-La suite de contrato para las historias se encuentra en `tests/test_historias_principales.py`. En la fase RED inicial fallaron las siete pruebas de rutas aún no implementadas; después de GREEN, la suite completa también cubre las pruebas existentes del detector.
+Las pruebas usan modelos simulados y no descargan pesos. Ruff omite `S101` solo en archivos de pruebas, donde `assert` es la forma normal de pytest/unittest. `pip-audit` consulta el índice de vulnerabilidades al ejecutarse.
 
-El backend expone los estados y resultados que la interfaz necesita. La pantalla visual de progreso, el gráfico circular, el botón de reintento y la vista de conversación deben implementarse en el cliente web; esta fase no modifica Angular/Ionic.
+## Estructura
 
-La bitácora del proceso TDD y las decisiones de asistencia de IA está en [`bitacora_ia.md`](./bitacora_ia.md).
+```text
+main.py                         API, validación, sesiones y CORS
+detector.py                     Carga del modelo y métricas
+document_processing.py          Extracción PDF/DOCX y análisis
+chat_service.py                 Generación de explicaciones locales
+api_constants.py                Límites y configuración común
+static/                         Interfaz web servida por FastAPI
+tests/                           Pruebas de contrato de la API
+test_detector.py                 Pruebas unitarias del detector
+requirements*.txt                Dependencias con versiones fijadas
+pyproject.toml                   Configuración de Ruff
+revision_seguridad.md             Revisión AppSec y calidad
+bitacora_ia.md                    Registro de decisiones y asistencia
+```
+
+El almacenamiento de documentos y sesiones es temporal y está en memoria; se limpian sesiones y resultados expirados periódicamente. No es persistencia compartida para despliegues con varios workers.
+
+## Uso de IA
+
+GitHub Copilot se utilizó como apoyo para revisar el código, proponer pruebas de abuso y refactorizaciones y redactar documentación. Las sugerencias se contrastaron con el código, las pruebas, Ruff y `pip-audit`; las conclusiones de seguridad y sus limitaciones se registran en `revision_seguridad.md` y `bitacora_ia.md`.
+
+## Autor y licencia
+
+- **Autor:** Maicol Rodriguez (según el repositorio del proyecto).
+- **Licencia:** No especificada en este repositorio.
