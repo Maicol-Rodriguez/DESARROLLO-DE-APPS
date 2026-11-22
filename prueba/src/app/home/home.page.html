@@ -1,20 +1,200 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <main class="page-shell">
+    <header class="page-header">
+      <p class="eyebrow">Proyecto académico</p>
+      <h1>Analizador de texto</h1>
+      <p class="intro">
+        Revisa algunas señales del texto. El resultado es orientativo y no determina
+        quién lo escribió.
+      </p>
+    </header>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-  </div>
+    <section class="panel" aria-label="Entrada para análisis">
+      <div class="mode-switch" role="group" aria-label="Tipo de entrada">
+        <button
+          type="button"
+          [disabled]="cargando"
+          [class.active]="modo === 'texto'"
+          [attr.aria-pressed]="modo === 'texto'"
+          (click)="cambiarModo('texto')"
+        >Pegar texto</button>
+        <button
+          type="button"
+          [disabled]="cargando"
+          [class.active]="modo === 'documento'"
+          [attr.aria-pressed]="modo === 'documento'"
+          (click)="cambiarModo('documento')"
+        >Subir PDF o Word</button>
+      </div>
+
+      @if (modo === 'texto') {
+        <label for="analysis-text">Texto en español</label>
+        <textarea
+          id="analysis-text"
+          name="texto"
+          [(ngModel)]="texto"
+          [maxlength]="5000"
+          rows="9"
+          placeholder="Pega aquí el texto que deseas explorar..."
+          aria-describedby="text-counter validation-message"
+        ></textarea>
+        <div class="counter-row" id="text-counter">
+          <span>{{ cantidadPalabras }} / 50 palabras mínimas</span>
+          <span>{{ texto.length }} / 5000 caracteres</span>
+          <span>{{ cantidadOraciones }} / 100 oraciones máx.</span>
+        </div>
+        <p id="validation-message" class="validation-message" aria-live="polite">
+          {{ mensajeValidacion }}
+        </p>
+      } @else {
+        <label for="document-file">Selecciona un documento</label>
+        <input
+          id="document-file"
+          type="file"
+          [disabled]="cargando"
+          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          (change)="seleccionarArchivo($event)"
+          aria-describedby="file-help"
+        />
+        <p id="file-help" class="help-text">
+          PDF o DOCX, máximo 5 MiB. El documento debe contener al menos 50 palabras y
+          no superar 5000 caracteres extraídos ni 100 oraciones completas.
+        </p>
+        @if (archivo) {
+          <p class="help-text">{{ archivo.name }} · {{ (archivo.size / 1048576).toFixed(2) }} MiB</p>
+        }
+        @if (archivo && !archivoValido) {
+          <p class="validation-message" role="alert">
+            Elige un PDF/DOCX de hasta 5 MiB.
+          </p>
+        }
+      }
+
+      <div class="actions">
+        @if (modo === 'texto') {
+          <button type="button" class="primary-button" [disabled]="!textoValido || cargando" (click)="analizarTexto()">
+            {{ cargando ? 'Analizando…' : 'Analizar texto' }}
+          </button>
+        } @else {
+          <button type="button" class="primary-button" [disabled]="!archivoValido || cargando" (click)="analizarDocumento()">
+            {{ cargando ? 'Procesando documento…' : 'Analizar documento' }}
+          </button>
+        }
+        <button type="button" class="secondary-button" [disabled]="cargando" (click)="limpiar()">
+          Limpiar
+        </button>
+      </div>
+      @if (cargando) {
+        <p class="status-message" role="status">{{ mensajeCarga }}</p>
+      }
+      @if (error) {
+        <p class="error-message" role="alert">{{ error }}</p>
+      }
+    </section>
+
+    @if (resultado; as datos) {
+      <section class="panel result-panel" aria-live="polite" aria-labelledby="result-title">
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow">Resultado orientativo</p>
+            <h2 id="result-title">Indicador: {{ datos.puntuacion }} / 100</h2>
+          </div>
+          <span class="level-badge" [class]=" 'level-badge level-' + datos.nivel">
+            Resultado {{ datos.nivel }}
+          </span>
+        </div>
+        <div
+          class="progress-track"
+          role="progressbar"
+          aria-label="Indicador orientativo"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          [attr.aria-valuenow]="datos.puntuacion"
+        >
+          <div class="progress-value" [style.width.%]="anchoIndicador()"></div>
+        </div>
+
+        @if (datos.perplejidad !== undefined || datos.variabilidad !== undefined) {
+          <div class="metrics-grid">
+            @if (datos.perplejidad !== undefined) {
+              <article class="metric-card">
+                <h3>Palabras fáciles de anticipar</h3>
+                <p class="metric-value">{{ datos.perplejidad }}</p>
+                <p>Cuánto pudo anticipar las palabras el modelo.</p>
+              </article>
+            }
+            @if (datos.variabilidad !== undefined) {
+              <article class="metric-card">
+                <h3>Cambios entre oraciones</h3>
+                <p class="metric-value">{{ datos.variabilidad }}</p>
+                <p>Cuánto cambia la forma de una oración a otra. Estos cambios pueden bajar el indicador.</p>
+              </article>
+            }
+          </div>
+        }
+
+        @if (datos.oraciones_sospechosas?.length) {
+          <div class="detail-block">
+            <h3>Oraciones más predecibles</h3>
+            <ol>
+              @for (oracion of datos.oraciones_sospechosas; track $index) {
+                <li>{{ oracion }}</li>
+              }
+            </ol>
+          </div>
+        }
+        @if (datos.motivos?.length) {
+          <div class="detail-block">
+            <h3>Observaciones</h3>
+            <ul>
+              @for (motivo of datos.motivos; track motivo) {
+                <li>{{ motivo }}</li>
+              }
+            </ul>
+          </div>
+        }
+
+        <p class="notice">{{ avisoResultado() }}</p>
+      </section>
+    }
+
+    @if (sessionId && resultado) {
+      <section class="panel chat-panel" aria-labelledby="chat-title">
+        <h2 id="chat-title">Pregúntale a Gemini sobre el texto</h2>
+        <p class="help-text">
+          El texto se guarda temporalmente en esta app durante 15 minutos. Al preguntar, el texto,
+          tu pregunta y las respuestas anteriores de esta sesión se envían a Google Gemini.
+          No se envían durante el análisis. Gemini puede equivocarse.
+        </p>
+        @for (entrada of conversaciones; track $index) {
+          <article class="chat-entry">
+            <p><strong>Tú:</strong> {{ entrada.pregunta }}</p>
+            <p><strong>Respuesta:</strong> {{ entrada.respuesta }}</p>
+            @for (razon of entrada.razones; track razon) {
+              <p class="chat-reason">{{ razon }}</p>
+            }
+          </article>
+        }
+        <form class="chat-form" (ngSubmit)="enviarPregunta()">
+          <label for="chat-question">Tu pregunta</label>
+          <input
+            id="chat-question"
+            name="pregunta"
+            [(ngModel)]="pregunta"
+            maxlength="500"
+            autocomplete="off"
+            placeholder="¿Puedes explicar la idea principal?"
+          />
+          <button class="primary-button" type="submit" [disabled]="!pregunta.trim() || cargando">
+            Enviar
+          </button>
+        </form>
+      </section>
+    }
+
+    <footer>
+      Una cifra alta no prueba que un texto sea de IA.
+      No uses este resultado para decisiones académicas, laborales o disciplinarias.
+    </footer>
+  </main>
 </ion-content>
