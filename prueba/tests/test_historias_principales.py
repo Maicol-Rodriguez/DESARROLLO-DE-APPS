@@ -1,18 +1,26 @@
 """Pruebas de contrato para HU-01, HU-03 y HU-04."""
 
+import json
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 
 import pytest
-import torch
 from docx import Document
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from pypdf import PdfWriter
 
 import main
+import chat_service
 from chat_service import generar_respuesta_chat
-from document_processing import extraer_texto_documento
+from chat_service import GeminiConfigurationError
+from document_processing import extraer_texto_documento, procesar_documento
+
+
+@pytest.fixture(autouse=True)
+def evitar_descarga_modelo(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Evita la descarga y carga del modelo pesado durante las pruebas."""
+    monkeypatch.setattr(main, "cargar_modelo", lambda *args, **kwargs: (None, None))
 
 
 @pytest.fixture
@@ -31,7 +39,7 @@ def analisis_simulado(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         main,
         "extraer_texto_documento",
-        lambda contenido, extension: "Texto de prueba para analizar el documento.",
+        lambda contenido, extension: " ".join(["palabra"] * 50),
     )
     monkeypatch.setattr(
         main,
@@ -133,31 +141,105 @@ def test_extraer_texto_pdf_valido() -> None:
     assert extraer_texto_documento(contenido.getvalue(), ".pdf") == ""
 
 
-def test_chat_service_genera_respuesta_con_el_modelo_local() -> None:
-    class TokenizadorSimulado:
-        eos_token_id = 0
+def test_extraer_texto_pdf_rechaza_mas_de_100_paginas() -> None:
+    escritor = PdfWriter()
+    for _ in range(101):
+        escritor.add_blank_page(width=72, height=72)
+    contenido = BytesIO()
+    escritor.write(contenido)
 
-        def __call__(self, prompt: str, return_tensors: str) -> dict:
-            self.prompt = prompt
-            return {"input_ids": torch.tensor([[1, 2]])}
+    with pytest.raises(ValueError, match="100 páginas"):
+        extraer_texto_documento(contenido.getvalue(), ".pdf")
 
-        def decode(self, tokens: torch.Tensor, skip_special_tokens: bool) -> str:
-            return "La estimación se basa en los patrones medidos."
 
-    class ModeloSimulado:
-        def generate(self, input_ids: torch.Tensor, **kwargs: object) -> torch.Tensor:
-            return torch.tensor([[1, 2, 3]])
+def test_chat_service_sends_text_and_history_without_storing_interaction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    llamadas: list[dict[str, object]] = []
 
-    tokenizer = TokenizadorSimulado()
-    response = generar_respuesta_chat(
-        '¿Por qué "este trabajo" tiene 80%?',
-        {"puntuacion": 80, "perplejidad": 30, "variabilidad": 5},
-        tokenizer,
-        ModeloSimulado(),
+    class InteraccionesFalsas:
+        def create(self, **kwargs: object) -> object:
+            llamadas.append(kwargs)
+            return type("Interaccion", (), {"output_text": "Respuesta contextual."})()
+
+    class ClienteFalso:
+        def __init__(self, *, api_key: str) -> None:
+            assert api_key == "clave-de-prueba"
+            self.interactions = InteraccionesFalsas()
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setenv("GEMINI_API_KEY", "clave-de-prueba")
+    monkeypatch.setattr(chat_service.genai, "Client", ClienteFalso)
+    texto = "Texto completo que no se envía hasta que se hace una pregunta."
+    historial = [{"pregunta": "¿Qué dice?", "respuesta": "Habla de una idea."}]
+
+    respuesta = generar_respuesta_chat(
+        "¿Puedes resumirlo?",
+        texto,
+        {"puntuacion": 45, "nivel": "medio", "perplejidad": 62, "variabilidad": 164},
+        historial,
     )
 
-    assert response == "La estimación se basa en los patrones medidos."
-    assert r'\"este trabajo\"' in tokenizer.prompt
+    assert respuesta == "Respuesta contextual."
+    assert llamadas[0]["store"] is False
+    assert llamadas[0]["system_instruction"]
+    entrada = json.loads(str(llamadas[0]["input"]))
+    assert entrada["texto_analizado"] == texto
+    assert entrada["conversacion_anterior"] == historial
+    assert entrada["pregunta"] == "¿Puedes resumirlo?"
+
+
+def test_chat_service_requires_an_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+
+    with pytest.raises(GeminiConfigurationError):
+        generar_respuesta_chat("Pregunta", "Texto de contexto", {}, [])
+
+
+def test_analizar_texto_crea_sesion_temporal_con_contexto(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    texto = " ".join(["palabra"] * 50)
+    resultado = {
+        "puntuacion": 45.0,
+        "nivel": "medio",
+        "perplejidad": 62.0,
+        "variabilidad": 164.0,
+        "oraciones_sospechosas": [],
+        "aviso": "Indicador orientativo.",
+    }
+    monkeypatch.setattr(main, "analizar_texto", lambda *args: resultado)
+
+    response = client.post("/analizar", json={"texto": texto})
+
+    assert response.status_code == 200
+    session_id = response.json()["session_id"]
+    session = main.app.state.sesiones[session_id]
+    document = main.app.state.documentos[session["document_id"]]
+    assert document["texto"] == texto
+    assert document["resultado"] == resultado
+    assert session["historial"] == []
+
+
+def test_procesar_documento_guarda_el_texto_extraido_para_el_chat() -> None:
+    texto = " ".join(["contenido"] * 50)
+    documentos = {"documento-1": {"estado": "procesando"}}
+
+    procesar_documento(
+        "documento-1",
+        b"contenido",
+        ".pdf",
+        documentos,
+        None,
+        None,
+        lambda contenido, extension: texto,
+        lambda contenido, tokenizer, model: {"puntuacion": 50.0},
+    )
+
+    assert documentos["documento-1"]["texto"] == texto
 
 
 @pytest.mark.parametrize(
@@ -240,10 +322,10 @@ def test_limpieza_elimina_sesiones_y_documentos_expirados() -> None:
 
     eliminados = main.limpiar_estado_expirado(sesiones, documentos, ahora)
 
-    assert eliminados == 2
+    assert eliminados == 3
     assert "sesion-expirada" not in sesiones
     assert "doc-expirado" not in documentos
-    assert "doc-procesando" in documentos
+    assert "doc-procesando" not in documentos
     assert "doc-vigente" in documentos
 
 
@@ -332,6 +414,35 @@ def test_scanner_rechaza_texto_demasiado_corto(client: TestClient) -> None:
     assert "al menos 50 palabras" in " ".join(response.json()["detalles"])
 
 
+def test_scanner_rechaza_cuerpo_http_demasiado_grande(client: TestClient) -> None:
+    response = client.post("/analizar", json={"texto": "x" * (32 * 1024)})
+
+    assert response.status_code == 413
+
+
+def test_documento_rechaza_texto_extraido_demasiado_corto(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        main,
+        "extraer_texto_documento",
+        lambda contenido, extension: "Solo siete palabras para este documento corto.",
+    )
+    carga = client.post(
+        "/api/v1/documentos/upload",
+        files={"file": ("informe.pdf", b"%PDF-1.4\ncontenido", "application/pdf")},
+    )
+
+    response = client.get(
+        f"/api/v1/documentos/{carga.json()['document_id']}/resultado",
+        headers={"X-Session-Id": carga.json()["session_id"]},
+    )
+
+    assert response.status_code == 503
+    assert "al menos 50 palabras" in response.json()["detail"]
+
+
 def test_resultado_informa_fallo_del_servidor_de_analisis(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -339,7 +450,7 @@ def test_resultado_informa_fallo_del_servidor_de_analisis(
     monkeypatch.setattr(
         main,
         "extraer_texto_documento",
-        lambda contenido, extension: "Texto para provocar el fallo de análisis.",
+        lambda contenido, extension: " ".join(["palabra"] * 50),
     )
 
     def fallar_analisis(texto: str, tokenizer: object, model: object) -> dict:
@@ -360,7 +471,7 @@ def test_resultado_informa_fallo_del_servidor_de_analisis(
 
     assert response.status_code == 503
     assert response.json()["detail"] == (
-        "Fallo de conexión con el servidor de análisis"
+        "No se pudo procesar el documento"
     )
 
 
@@ -368,8 +479,10 @@ def test_chat_responde_con_al_menos_dos_razones_linguisticas(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    texto = "Este es el texto del documento que Gemini debe leer."
     main.app.state.documentos["doc-chat"] = {
         "estado": "completado",
+        "texto": texto,
         "resultado": {
             "puntuacion": 80.0,
             "nivel": "alto",
@@ -381,7 +494,13 @@ def test_chat_responde_con_al_menos_dos_razones_linguisticas(
         "document_id": "doc-chat",
         "expira": datetime.now(timezone.utc) + timedelta(minutes=15),
     }
-    monkeypatch.setattr(main, "generar_respuesta_chat", lambda *args: "Respuesta generada.")
+    argumentos: list[tuple[object, ...]] = []
+
+    def responder(*args: object) -> str:
+        argumentos.append(args)
+        return "Respuesta generada."
+
+    monkeypatch.setattr(main, "generar_respuesta_chat", responder)
 
     response = client.post(
         "/api/v1/chat/mensaje",
@@ -394,6 +513,59 @@ def test_chat_responde_con_al_menos_dos_razones_linguisticas(
     assert response.status_code == 200
     assert len(response.json()["razones"]) >= 2
     assert all(razon.strip() for razon in response.json()["razones"])
+    assert argumentos[0][1] == texto
+    assert argumentos[0][3] == []
+    assert main.app.state.sesiones["sesion-activa"]["historial"] == [
+        {
+            "pregunta": "¿Por qué este trabajo tiene 80%?",
+            "respuesta": "Respuesta generada.",
+        }
+    ]
+
+    segunda_respuesta = client.post(
+        "/api/v1/chat/mensaje",
+        json={
+            "session_id": "sesion-activa",
+            "mensaje": "¿Puedes explicarlo de otra forma?",
+        },
+    )
+
+    assert segunda_respuesta.status_code == 200
+    assert argumentos[1][3] == [
+        {
+            "pregunta": "¿Por qué este trabajo tiene 80%?",
+            "respuesta": "Respuesta generada.",
+        }
+    ]
+
+
+def test_chat_informa_si_falta_la_clave_de_gemini(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    main.app.state.documentos["doc-sin-clave"] = {
+        "estado": "completado",
+        "texto": "Texto de contexto",
+        "resultado": {
+            "puntuacion": 50.0,
+            "nivel": "medio",
+            "perplejidad": 50.0,
+            "variabilidad": 12.0,
+        },
+    }
+    main.app.state.sesiones["sesion-sin-clave"] = {
+        "document_id": "doc-sin-clave",
+        "expira": datetime.now(timezone.utc) + timedelta(minutes=15),
+    }
+
+    response = client.post(
+        "/api/v1/chat/mensaje",
+        json={"session_id": "sesion-sin-clave", "mensaje": "¿Qué significa?"},
+    )
+
+    assert response.status_code == 503
+    assert "GEMINI_API_KEY" in response.json()["detail"]
 
 
 def test_chat_rechaza_sesion_caducada_con_401(client: TestClient) -> None:

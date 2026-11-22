@@ -57,6 +57,14 @@ class TestDetectorIA(unittest.TestCase):
         mensaje_error = str(contexto.exception)
         self.assertIn("al menos 50 palabras", mensaje_error)
 
+    def test_texto_con_muchas_oraciones_se_rechaza(self) -> None:
+        texto = " ".join(["Una frase de prueba."] * 101)
+
+        with self.assertRaises(ValidationError) as contexto:
+            AnalisisRequest(texto=texto)
+
+        self.assertIn("100 oraciones", str(contexto.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
