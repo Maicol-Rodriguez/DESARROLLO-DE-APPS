@@ -1,4 +1,4 @@
-"""Cálculo de perplejidad, variabilidad y puntuación estimada de autoría por IA."""
+"""Cálculo de métricas e indicador experimental de texto."""
 import logging
 import os
 import re
@@ -7,6 +7,8 @@ from typing import Any
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from api_constants import MIN_WORDS_PER_SENTENCE
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ UMBRAL_PPL_BAJA: float = 40.0
 UMBRAL_PPL_ALTA: float = 80.0
 UMBRAL_VAR_BAJA: float = 10.0
 UMBRAL_VAR_ALTA: float = 25.0
-MIN_PALABRAS_ORACION: int = 4
+MIN_PALABRAS_ORACION: int = MIN_WORDS_PER_SENTENCE
 LONGITUD_CONTEXTO_MODELO_POR_DEFECTO = 1024
 PESO_PUNTUACION_PERPLEJIDAD = 0.7
 PESO_PUNTUACION_VARIABILIDAD = 0.3
@@ -29,8 +31,8 @@ UMBRAL_PUNTUACION_ALTA = 70.0
 UMBRAL_PUNTUACION_MEDIA = 35.0
 MAX_ORACIONES_SOSPECHOSAS = 3
 AVISO_LEGAL: str = (
-    "Esta puntuación es solo una estimación estadística heurística y "
-    "no constituye una prueba definitiva de autoría humana o por IA."
+    "Es una guía experimental, no una prueba: puede dar una cifra baja a un texto "
+    "de IA o alta a uno escrito por una persona."
 )
 
 
@@ -133,7 +135,7 @@ def calcular_puntuacion_ia(
     variabilidad: float,
     num_oraciones: int,
 ) -> tuple[float, str]:
-    """Calcula la puntuación (0-100) y nivel de probabilidad estimada de IA.
+    """Calcula un índice heurístico (0-100) y su nivel cualitativo.
 
     Args:
         ppl: Perplejidad global del texto.
@@ -190,7 +192,7 @@ def obtener_sospechosas(oraciones_ppl: list[tuple[str, float]]) -> list[str]:
 
 
 def analizar_texto(texto: str, tokenizer: Any, model: Any) -> dict[str, Any]:
-    """Ejecuta el análisis completo de perplejidad, burstiness y estimación de IA.
+    """Calcula perplejidad, variabilidad e índice heurístico para un texto.
 
     Args:
         texto: Texto a analizar.
