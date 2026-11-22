@@ -46,7 +46,7 @@ Fecha: 2026-11-22
 
 ### Regla 2: `calcular_puntuacion_ia` - Cálculo de índice heurístico y clasificación cualitativa
 
-**Regla completa (el oráculo):** La puntuación experimental de probabilidad de IA ($0.0$ a $100.0$) se calcula mediante mapeo lineal inverso de perplejidad y variabilidad. 
+**Regla completa (el oráculo):** La puntuación experimental de probabilidad de IA ($0.0$ a $100.0$) se calcula mediante mapeo lineal inverso de perplejidad y variabilidad.
 - Para la perplejidad: $score_{ppl} = \text{clamp}(0, 100, \frac{80.0 - \text{ppl}}{40.0} \times 100)$. Si $\text{ppl} \le 40.0$, $score_{ppl} = 100.0$; si $\text{ppl} \ge 80.0$, $score_{ppl} = 0.0$.
 - Para la variabilidad (desviación estándar entre oraciones): solo se pondera si el texto contiene al menos 2 oraciones válidas (`num_oraciones >= 2`). $score_{var} = \text{clamp}(0, 100, \frac{25.0 - \text{variabilidad}}{15.0} \times 100)$. Si $\text{variabilidad} \le 10.0$, $score_{var} = 100.0$; si $\text{variabilidad} \ge 25.0$, $score_{var} = 0.0$.
 - Ponderación combinada: Si $\text{num\_oraciones} \ge 2$, $Puntuación = round(score_{ppl} \times 0.7 + score_{var} \times 0.3, 2)$. Si $\text{num\_oraciones} < 2$, $Puntuación = round(score_{ppl}, 2)$ (100% perplejidad).
