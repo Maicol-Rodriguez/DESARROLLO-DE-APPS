@@ -6,7 +6,7 @@
 - **Pruebas:** `pytest -q` en un entorno limpio de Python 3.11.9.
 - **Dependencias:** `pip-audit -r requirements.txt` y `pip-audit -r requirements-dev.txt`. Ambas ejecuciones terminaron con `No known vulnerabilities found`. Se corrigió `filelock` y se elevó el requisito mínimo a Python 3.11 porque la versión reparada no admite Python 3.10.
 - **Secretos:** inspección de fuentes e historial Git con patrones de credenciales; no se encontraron coincidencias. `.env` no existe, está ignorado por `.gitignore:76` y se añadió `.env.example`.
-- **Alcance:** API y archivos Python del proyecto `prueba`. No hay SQL ni comandos del sistema construidos con datos de usuario. El chat usa un modelo local; sus entradas se validan y serializan como JSON, pero el *prompt injection* semántico no puede eliminarse por completo en un modelo de texto plano.
+- **Alcance:** API y archivos Python del proyecto `prueba`. No hay SQL ni comandos del sistema construidos con datos de usuario. El chat envía a Gemini el texto y las preguntas solo al enviar un mensaje; usa `store=False`, pero Google recibe y procesa esos datos. La clave vive en `GEMINI_API_KEY`. Las entradas se validan y serializan como JSON, aunque el *prompt injection* semántico no puede eliminarse por completo.
 - **Contraseñas:** no aplica; la aplicación no crea cuentas ni almacena contraseñas. Las sesiones anónimas usan UUID aleatorios como credenciales portadoras.
 
 ## 2. Tabla de hallazgos y correcciones
@@ -33,8 +33,19 @@
 
 ## 4. Pendientes
 
-1. Añadir *rate limiting* para `/analizar` y la carga de documentos; son operaciones públicas que consumen recursos.
-2. Desplegar detrás de HTTPS y proteger el `session_id` como token portador. El proyecto no implementa cuentas ni roles.
-3. Evaluar las respuestas del modelo frente a *prompt injection* y contenido engañoso; la serialización y el límite de entrada no garantizan resistencia semántica.
-4. El almacenamiento sigue siendo local a un proceso; no se comparte entre workers ni sobrevive a reinicios.
-5. La bitácora mantiene cambios previos del árbol de trabajo además de las entradas nuevas; se preservó sin incluirla en los commits acotados de código y configuración.
+1. Desplegar detrás de HTTPS y proteger el `session_id` como token portador. El proyecto no implementa cuentas ni roles.
+2. Evaluar las respuestas del modelo frente a *prompt injection* y contenido engañoso; la serialización y el límite de entrada no garantizan resistencia semántica.
+3. El almacenamiento y el límite de solicitudes son locales a un proceso; no se comparten entre workers ni sobreviven a reinicios. En despliegues públicos deben usarse controles compartidos y un proxy.
+4. La bitácora mantiene cambios previos del árbol de trabajo además de las entradas nuevas; se preservó sin incluirla en los commits acotados de código y configuración.
+
+## 5. Endurecimiento posterior para la demostración local
+
+- Se añadieron límites de cuerpo HTTP por ruta, validación común de 50 a 5000 caracteres/palabras y máximo de 100 oraciones analizables.
+- Las cargas limitan archivos a 5 MiB, PDF a 100 páginas, DOCX a 2000 entradas y 20 MiB descomprimidos; el texto extraído reutiliza los límites del análisis.
+- Se añadieron límites por IP: 10 análisis, 20 cargas y 30 preguntas por minuto. Son controles de demostración en memoria, no protección contra tráfico distribuido.
+- Se limitó el sondeo de resultados a 90 consultas/minuto para permitir progreso de documentos y evitar solicitudes ilimitadas.
+- Se ejecuta el análisis de texto fuera del event loop y Angular marca la vista después de las respuestas asíncronas; se añadió timeout para que el indicador de carga no quede indefinido.
+- Se sustituyó la interfaz estática en desuso por Angular/Ionic y se ajustó Browserslist para navegadores actuales.
+- El chat usa Gemini con clave del lado del servidor; el texto completo solo se envía al preguntar y la llamada usa `store=False`. La interfaz avisa sobre el envío a Google.
+- La interfaz usa términos sencillos para las métricas. No se recalibró el indicador: no existe un conjunto etiquetado para demostrar más precisión.
+- Verificación de esta actualización: 32 pruebas Python, 6 pruebas Angular, Ruff, lint Angular y build de producción completados correctamente; se probó el análisis desde el navegador con respuestas reales del modelo para texto y DOCX.

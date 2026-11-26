@@ -81,3 +81,5 @@ build/
 dist/
 coverage/
 htmlcov/
+registro_pruebas.zip
+registro_pruebas/

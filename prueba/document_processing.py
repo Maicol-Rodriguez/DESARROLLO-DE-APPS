@@ -3,15 +3,22 @@
 from io import BytesIO
 import logging
 from typing import Any, Callable
-from zipfile import BadZipFile
+from zipfile import BadZipFile, ZipFile
 
 from docx import Document
 from pydantic import ValidationError
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
-from api_constants import ANALYSIS_FAILURE_MESSAGE
+from api_constants import (
+    ANALYSIS_FAILURE_MESSAGE,
+    MAX_ANALYSIS_CHARACTERS,
+    MAX_DOCX_ARCHIVE_ENTRIES,
+    MAX_DOCX_UNCOMPRESSED_BYTES,
+    MAX_DOCUMENT_PAGES,
+)
 from detector import UMBRAL_PPL_BAJA, UMBRAL_VAR_BAJA
+from text_validation import validar_texto_analisis
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +39,29 @@ def extraer_texto_documento(contenido: bytes, extension: str) -> str:
     """
     if extension == ".pdf":
         lector = PdfReader(BytesIO(contenido))
-        return "\n".join(pagina.extract_text() or "" for pagina in lector.pages)
+        if len(lector.pages) > MAX_DOCUMENT_PAGES:
+            raise ValueError(
+                f"El PDF supera el límite de {MAX_DOCUMENT_PAGES} páginas."
+            )
+        fragmentos: list[str] = []
+        total_caracteres = 0
+        for pagina in lector.pages:
+            fragmento = pagina.extract_text() or ""
+            total_caracteres += len(fragmento) + bool(fragmentos)
+            if total_caracteres > MAX_ANALYSIS_CHARACTERS:
+                raise ValueError(
+                    f"El texto extraído supera el límite de "
+                    f"{MAX_ANALYSIS_CHARACTERS} caracteres."
+                )
+            fragmentos.append(fragmento)
+        return "\n".join(fragmentos)
     if extension == ".docx":
+        with ZipFile(BytesIO(contenido)) as archivo_zip:
+            entradas = archivo_zip.infolist()
+            if len(entradas) > MAX_DOCX_ARCHIVE_ENTRIES:
+                raise ValueError("El documento Word contiene demasiados elementos.")
+            if sum(entrada.file_size for entrada in entradas) > MAX_DOCX_UNCOMPRESSED_BYTES:
+                raise ValueError("El documento Word excede el límite de contenido descomprimido.")
         documento = Document(BytesIO(contenido))
         fragmentos = [parrafo.text for parrafo in documento.paragraphs]
         fragmentos.extend(
@@ -42,7 +70,13 @@ def extraer_texto_documento(contenido: bytes, extension: str) -> str:
             for fila in tabla.rows
             for celda in fila.cells
         )
-        return "\n".join(fragmentos)
+        texto = "\n".join(fragmentos)
+        if len(texto) > MAX_ANALYSIS_CHARACTERS:
+            raise ValueError(
+                f"El texto extraído supera el límite de "
+                f"{MAX_ANALYSIS_CHARACTERS} caracteres."
+            )
+        return texto
     raise ValueError(f"Extensión de documento no soportada: {extension}")
 
 
@@ -61,17 +95,15 @@ def crear_motivos(resultado: dict[str, Any]) -> list[str]:
     perplejidad = float(resultado["perplejidad"])
     variabilidad = float(resultado["variabilidad"])
     motivo_perplejidad = (
-        "La perplejidad baja indica que las secuencias de palabras resultan "
-        "relativamente predecibles."
+        "El modelo pudo anticipar con facilidad varias combinaciones de palabras."
         if perplejidad <= UMBRAL_PPL_BAJA
-        else "La perplejidad observada refleja la predictibilidad de las "
-        "secuencias de palabras."
+        else "El modelo tuvo más dificultad para anticipar algunas combinaciones "
+        "de palabras."
     )
     motivo_variabilidad = (
-        "La variabilidad reducida muestra un ritmo similar entre las oraciones."
+        "Las oraciones tienen cambios pequeños en su forma y ritmo."
         if variabilidad <= UMBRAL_VAR_BAJA
-        else "La variabilidad entre oraciones refleja cambios en el ritmo "
-        "y la estructura."
+        else "Las oraciones cambian bastante en su forma y ritmo."
     )
     return [motivo_perplejidad, motivo_variabilidad]
 
@@ -106,9 +138,15 @@ def procesar_documento(
     """
     try:
         texto = extraer_texto(contenido, extension)
-        if not texto.strip():
-            raise ValueError("El documento no contiene texto extraíble")
+        validar_texto_analisis(texto)
         resultado = analizar(texto, tokenizer, model)
+    except ValueError as error:
+        logger.exception("No se pudo procesar el documento %s", document_id)
+        documento = documentos.get(document_id)
+        if documento is not None:
+            documento["estado"] = "error"
+            documento["error"] = str(error)
+        return
     except (
         BadZipFile,
         EOFError,
@@ -117,12 +155,16 @@ def procesar_documento(
         PdfReadError,
         RuntimeError,
         ValidationError,
-        ValueError,
     ):
         logger.exception("No se pudo procesar el documento %s", document_id)
-        documentos[document_id]["estado"] = "error"
-        documentos[document_id]["error"] = ANALYSIS_FAILURE_MESSAGE
+        documento = documentos.get(document_id)
+        if documento is not None:
+            documento["estado"] = "error"
+            documento["error"] = ANALYSIS_FAILURE_MESSAGE
         return
 
-    documentos[document_id]["estado"] = "completado"
-    documentos[document_id]["resultado"] = resultado
+    documento = documentos.get(document_id)
+    if documento is not None:
+        documento["estado"] = "completado"
+        documento["resultado"] = resultado
+        documento["texto"] = texto

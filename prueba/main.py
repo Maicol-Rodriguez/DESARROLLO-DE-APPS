@@ -5,12 +5,14 @@ import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from io import BytesIO
+from pathlib import Path
 from typing import Annotated, Any, AsyncGenerator
 from uuid import uuid4
 from zipfile import BadZipFile, ZipFile
 
 from fastapi import (
     BackgroundTasks,
+    Depends,
     FastAPI,
     File,
     Header,
@@ -23,6 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
+from starlette.concurrency import run_in_threadpool
 
 from api_constants import (
     ANALYSIS_FAILURE_MESSAGE,
@@ -31,21 +34,33 @@ from api_constants import (
     DOCUMENT_TOO_LARGE_MESSAGE,
     EXPIRED_SESSION_MESSAGE,
     INVALID_DOCUMENT_SESSION_MESSAGE,
-    MAX_ANALYSIS_CHARACTERS,
+    GEMINI_NOT_CONFIGURED_MESSAGE,
+    MAX_CHAT_HISTORY_TURNS,
     MAX_CHAT_MESSAGE_LENGTH,
     MAX_DOCUMENT_BYTES,
-    MIN_ANALYSIS_WORDS,
+    ANALYSIS_REQUESTS_PER_MINUTE,
+    CHAT_REQUESTS_PER_MINUTE,
+    DOCUMENT_UPLOADS_PER_MINUTE,
+    RESULT_REQUESTS_PER_MINUTE,
+    RATE_LIMIT_WINDOW_SECONDS,
     SESSION_TTL,
     STATE_CLEANUP_INTERVAL,
     UNSUPPORTED_FORMAT_MESSAGE,
 )
-from chat_service import generar_respuesta_chat
+from chat_service import (
+    GeminiConfigurationError,
+    GeminiRequestError,
+    generar_respuesta_chat,
+)
 from detector import analizar_texto, cargar_modelo
 from document_processing import (
     crear_motivos,
     extraer_texto_documento,
     procesar_documento,
 )
+from rate_limiting import FixedWindowRateLimiter
+from request_limits import RequestBodyLimitMiddleware
+from text_validation import validar_texto_analisis
 
 logger = logging.getLogger(__name__)
 
@@ -68,26 +83,12 @@ class AnalisisRequest(BaseModel):
         Raises:
             ValueError: If the input is blank, too short, or too long.
         """
-        limpio = valor.strip()
-        if not limpio:
-            raise ValueError("El texto no puede estar vacío ni componerse solo de espacios.")
-        palabras = limpio.split()
-        if len(palabras) < MIN_ANALYSIS_WORDS:
-            raise ValueError(
-                f"El texto debe contener al menos {MIN_ANALYSIS_WORDS} palabras "
-                f"(recibidas: {len(palabras)})."
-            )
-        if len(valor) > MAX_ANALYSIS_CHARACTERS:
-            raise ValueError(
-                f"El texto no debe superar los "
-                f"{MAX_ANALYSIS_CHARACTERS} caracteres "
-                f"(recibidos: {len(valor)})."
-            )
-        return valor
+        return validar_texto_analisis(valor)
 
 
 class AnalisisResponse(BaseModel):
     """Modelo de salida estructurado para la respuesta del detector."""
+    session_id: str
     puntuacion: float
     nivel: str
     perplejidad: float
@@ -182,11 +183,7 @@ def limpiar_estado_expirado(
 
     for document_id, documento in list(documentos.items()):
         expira = documento.get("expira")
-        if (
-            expira is not None
-            and expira <= instante
-            and documento.get("estado") != "procesando"
-        ):
+        if expira is not None and expira <= instante:
             documentos.pop(document_id, None)
             eliminados += 1
     return eliminados
@@ -207,10 +204,28 @@ async def _limpiar_estado_periodicamente(app: FastAPI) -> None:
 
 
 app = FastAPI(
-    title="Detector de Textos IA",
-    description="API académica para estimar probabilidad de autoría por IA.",
+    title="Analizador académico de texto",
+    description="API para calcular métricas e índices heurísticos no calibrados.",
     version="1.0.0",
     lifespan=lifespan,
+)
+app.add_middleware(RequestBodyLimitMiddleware)
+
+limitar_analisis = FixedWindowRateLimiter(
+    ANALYSIS_REQUESTS_PER_MINUTE,
+    RATE_LIMIT_WINDOW_SECONDS,
+)
+limitar_cargas = FixedWindowRateLimiter(
+    DOCUMENT_UPLOADS_PER_MINUTE,
+    RATE_LIMIT_WINDOW_SECONDS,
+)
+limitar_chat = FixedWindowRateLimiter(
+    CHAT_REQUESTS_PER_MINUTE,
+    RATE_LIMIT_WINDOW_SECONDS,
+)
+limitar_resultados = FixedWindowRateLimiter(
+    RESULT_REQUESTS_PER_MINUTE,
+    RATE_LIMIT_WINDOW_SECONDS,
 )
 
 
@@ -290,12 +305,16 @@ async def manejador_errores_validacion(
     )
 
 
-@app.post("/analizar", response_model=AnalisisResponse)
+@app.post(
+    "/analizar",
+    response_model=AnalisisResponse,
+    dependencies=[Depends(limitar_analisis)],
+)
 async def ruta_analizar(
     peticion: AnalisisRequest,
     request: Request,
 ) -> dict[str, Any]:
-    """Endpoint principal para analizar la probabilidad de IA en un texto.
+    """Endpoint principal para calcular métricas e índice heurístico de un texto.
 
     Args:
         peticion: Cuerpo validado con el texto a analizar.
@@ -307,10 +326,29 @@ async def ruta_analizar(
     Raises:
         Exceptions from model inference are propagated to FastAPI.
     """
-    # Privacidad: no guardamos ni imprimimos en logs el texto del usuario
     tokenizer = request.app.state.tokenizer
     model = request.app.state.model
-    return analizar_texto(peticion.texto, tokenizer, model)
+    resultado = await run_in_threadpool(
+        analizar_texto,
+        peticion.texto,
+        tokenizer,
+        model,
+    )
+    document_id = uuid4().hex
+    session_id = uuid4().hex
+    expira = datetime.now(timezone.utc) + SESSION_TTL
+    request.app.state.documentos[document_id] = {
+        "estado": "completado",
+        "resultado": resultado,
+        "texto": peticion.texto,
+        "expira": expira,
+    }
+    request.app.state.sesiones[session_id] = {
+        "document_id": document_id,
+        "expira": expira,
+        "historial": [],
+    }
+    return {**resultado, "session_id": session_id}
 
 
 @app.post("/api/v1/documentos/upload", status_code=201)
@@ -318,6 +356,7 @@ async def subir_documento(
     request: Request,
     background_tasks: BackgroundTasks,
     file: Annotated[UploadFile, File(...)],
+    _rate_limit: Annotated[None, Depends(limitar_cargas)],
 ) -> dict[str, str]:
     """Validate a PDF/DOCX upload and schedule analysis.
 
@@ -381,7 +420,10 @@ async def subir_documento(
     }
 
 
-@app.get("/api/v1/documentos/{document_id}/resultado")
+@app.get(
+    "/api/v1/documentos/{document_id}/resultado",
+    dependencies=[Depends(limitar_resultados)],
+)
 async def obtener_resultado(
     document_id: str,
     request: Request,
@@ -416,7 +458,10 @@ async def obtener_resultado(
     if documento is None:
         raise HTTPException(status_code=404, detail="Documento no encontrado")
     if documento["estado"] == "error":
-        raise HTTPException(status_code=503, detail=ANALYSIS_FAILURE_MESSAGE)
+        raise HTTPException(
+            status_code=503,
+            detail=documento.get("error", ANALYSIS_FAILURE_MESSAGE),
+        )
     if documento["estado"] != "completado":
         raise HTTPException(status_code=202, detail="El documento aún se está procesando")
 
@@ -433,6 +478,7 @@ async def obtener_resultado(
 async def enviar_mensaje_chat(
     peticion: ChatMessage,
     request: Request,
+    _rate_limit: Annotated[None, Depends(limitar_chat)],
 ) -> dict[str, Any]:
     """Respond to a question associated with an active session.
 
@@ -458,24 +504,40 @@ async def enviar_mensaje_chat(
         raise HTTPException(status_code=503, detail=ANALYSIS_FAILURE_MESSAGE)
 
     resultado = documento["resultado"]
+    texto = documento.get("texto")
+    if not isinstance(texto, str) or not texto:
+        raise HTTPException(status_code=503, detail=ANALYSIS_FAILURE_MESSAGE)
+    historial = sesion.setdefault("historial", [])
     try:
-        respuesta = generar_respuesta_chat(
+        respuesta = await run_in_threadpool(
+            generar_respuesta_chat,
             peticion.mensaje,
+            texto,
             resultado,
-            request.app.state.tokenizer,
-            request.app.state.model,
+            historial[-MAX_CHAT_HISTORY_TURNS:],
         )
-    except (OSError, RuntimeError, ValueError) as error:
-        logger.exception("No se pudo generar una respuesta para el chat")
+    except GeminiConfigurationError as error:
+        raise HTTPException(
+            status_code=503,
+            detail=GEMINI_NOT_CONFIGURED_MESSAGE,
+        ) from error
+    except GeminiRequestError as error:
+        logger.warning("Gemini no pudo generar una respuesta")
         raise HTTPException(
             status_code=503,
             detail=CHAT_GENERATION_FAILURE_MESSAGE,
         ) from error
+    historial.append({"pregunta": peticion.mensaje, "respuesta": respuesta})
+    del historial[:-MAX_CHAT_HISTORY_TURNS]
     return {
         "respuesta": respuesta,
         "razones": crear_motivos(resultado),
     }
 
 
-# Montaje de la interfaz web estática en la raíz "/" tras definir la ruta /analizar
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Angular sirve en desarrollo con `ng serve`; el build se sirve desde www.
+frontend_dir = Path(__file__).resolve().parent / "www"
+if frontend_dir.is_dir():
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+else:
+    logger.info("No se encontró el build Angular; ejecuta `npm run build` para servir la web.")

@@ -11,35 +11,28 @@
 | 2026-11-14 | «Revisa AppSec y calidad: inyección, secretos, contraseñas, acceso, dependencias y falsos positivos». | AJUSTADA | Se contrastaron las observaciones contra el código de `prueba`: se confirmaron IDOR, CORS permisivo, mensaje de chat sin límites, `logger` indefinido, valores Ruff y falta de pines. No hay SQL ni contraseñas de usuarios. El informe del agente también contenía rutas de carpetas vecinas y no se aplicó a este proyecto. | Inspección directa, pruebas de abuso y Ruff; `pip-audit` encontró primero 17 CVE asociadas a `filelock`, motivando actualizar Python mínimo. |
 | 2026-11-14 | «Corrige los hallazgos confirmados sin debilitar las pruebas existentes». | ACEPTADA | Se vinculó resultado a sesión propietaria vigente, se validó/encapsuló el texto de chat, se cerró CORS wildcard con credenciales, se definió el logger, se agregó limpieza periódica de estado expirado y se documentó/refactorizó el código. Los contratos existentes ahora envían la cabecera exigida; se agregaron pruebas de abuso nuevas. | En entorno limpio Python 3.11.9: `pytest -q` 27 passed, `ruff check .` sin avisos y ambos `pip-audit` sin vulnerabilidades conocidas. |
 | 2026-11-14 | «Usa el agente security-review y registra su participación». | ACEPTADA | El agente detectó problemas en aplicaciones hermanas del repositorio (`Uber.WEB`, `camara_ionic` y una práctica aislada), no en el backend `prueba`. Se delimitó el alcance y se revisó el backend directamente; no se integraron cambios del agente ni se abrió una rama de código. | Informe del agente leído y comparado con rutas/imports del proyecto `prueba`; cambios locales revisados y probados directamente. |
+| 2026-11-22 | «Diseña casos de prueba con técnicas formales (particiones de equivalencia, valores límite y tablas de decisión) para validar_texto_analisis, calcular_puntuacion_ia y la extracción de documentos». | ACEPTADA | Se estructuraron oráculos precisos y clases de equivalencia (válidas/inválidas), fronteras min-1, min, max, max+1, y tablas de decisión de reglas combinadas, superando la generación informal de pruebas. | Registro formal en `registro_pruebas.md` y suite de pruebas unitarias parametrizadas con `pytest`. |
+| 2026-11-22 | «Genera la suite de pruebas unitarias en tests/test_suite_semana7.py cubriendo todas las fronteras y reglas». | AJUSTADA | Se auditaron las pruebas sugeridas: se descartaron aserciones débiles (`is not None`) y redundancias; se corrigieron los cálculos de frontera por redondeo bancario IEEE 754 de Python (`69.82` y `34.82` en lugar de `.83`) y la extracción de páginas vacías (`\n`). Se utilizó `@pytest.mark.anyio` para las pruebas asíncronas del rate limiter. | Ejecución de `pytest -v tests/test_suite_semana7.py`: 53 pruebas pasaron exitosamente. |
+| 2026-11-22 | «Introduce un bug intencional en la lógica de negocio para la prueba de mutación manual». | ACEPTADA | Se mutó el operador `>=` por `>` en la línea 169 de `detector.py` para la frontera de nivel alto (`puntuacion >= 70.0`). Esto validó que la prueba de valor límite falla inmediatamente cuando se altera una condición de borde. Tras verificar el fallo, se revirtió inmediatamente el cambio. | `pytest -k test_valores_limite_clasificacion_cualitativa_nivel` falló con `AssertionError: assert 'medio' == 'alto'`. Tras restaurar, la suite completa (89 pruebas) volvió a verde (100% passed). |
+| 26-11-2026 | «Ejecuta Semana 8: cobertura con ramas, pruebas de mutación, aceptación Dado/Cuando/Entonces, API y reporte reproducible de defecto». | ACEPTADA | La cobertura no estaba instalada inicialmente; se añadió `pytest-cov==7.1.0` a `requirements-dev.txt` y se instaló en el entorno. El `Missing` inicial mostró sin cubrir el fallback/truncamiento del detector y límites PDF/DOCX. Un test API reprodujo un `TypeError` de análisis que escapaba y dejaba el documento en `procesando`; se añadió su manejo específico en `procesar_documento` y se creó el reporte D-01. Los criterios de autoría precisa y de proveedor real se marcaron no observables con los datos actuales. | Baseline: 89 passed, 84.64% líneas y 77.66% ramas. Final: `.\.venv\Scripts\python.exe -m pytest --cov=detector --cov=document_processing --cov=text_validation --cov=rate_limiting --cov=main --cov-branch --cov-report=term-missing --cov-report=json:"$env:TEMP\semana8_after.json"`: 104 passed, 90.62% líneas y 85.11% ramas; `.\.venv\Scripts\ruff.exe check .`: sin avisos. Pruebas deterministas con mocks; sin descarga del modelo ni clave Gemini. |
 
 ## Reflexión final
 
-Copilot ayudó a detectar que el contrato propuesto no correspondía a rutas existentes.
-pytest hizo observables las diferencias desde RED, sin descargar el modelo pesado.
-El ciclo TDD permitió implementar las rutas contra criterios medibles y repetibles.
-La separación de procesamiento y chat facilitó probar componentes sin llamadas externas.
-Los mocks mantuvieron las pruebas rápidas y evitaron depender de inferencia real.
-La solución en memoria es útil para el prototipo, pero no sustituye persistencia de producción.
-
+- Copilot ayudó a detectar que el contrato propuesto no correspondía a rutas existentes.
+- pytest hizo observables las diferencias desde RED, sin descargar el modelo pesado.
+- El ciclo TDD permitió implementar las rutas contra criterios medibles y repetibles.
+- La separación de procesamiento y chat facilitó probar componentes sin llamadas externas.
+- Los mocks mantuvieron las pruebas rápidas y evitaron depender de inferencia real.
+- La solución en memoria es útil para el prototipo, pero no sustituye persistencia de producción.
+- En la Semana 7, la aplicación de técnicas formales (particiones de equivalencia, valores límite y tablas de decisión) demostró que las pruebas generadas por IA requieren supervisión crítica de ingeniería: se identificaron fallas sutiles en redondeos de punto flotante y manejo de separadores de página que la IA asumió erróneamente.
+- La prueba de mutación manual demostró que las aserciones de valores límite son un escudo efectivo contra regresiones en la lógica de negocio.
 
 ## Declaración del uso de Inteligencia Artificial:
 
-Durante el desarrollo de este proyecto se utilizó GitHub Copilot como asistente de código inteligente e interacción vía chat. La herramienta se empleó para:
+Durante el desarrollo de este proyecto se utilizó GitHub Copilot y asistentes de IA avanzada como herramientas de aceleración y soporte en ingeniería de pruebas. La herramienta se empleó para:
 
-Inspeccionar el repositorio y proponer la estructura inicial de la suite de pruebas automatizadas con pytest y TestClient.
+1. Proponer la matriz preliminar de casos de prueba unitaria y plantillas de pruebas parametrizadas con `pytest`.
+2. Generar sugerencias de datos de prueba sintéticos con casos de borde (caracteres especiales, diacríticos y textos de frontera).
+3. Contrastar y refinar las tablas de decisión y particiones de equivalencia frente a las reglas de negocio de los módulos analíticos.
 
-Generar sugerencias de código para la resolución de errores detectados en la fase RED y su posterior paso a GREEN.
-
-Identificar oportunidades de mejora en la fase REFACTOR, centralizando constantes de error y umbrales de detección.
-
-Todo el código sugerido por la IA fue auditado, modificado y validado mediante la ejecución continua de la suite de pruebas, garantizando un uso crítico y responsable sin aceptar soluciones que comprometieran la arquitectura o la seguridad del proyecto.
-
-
-## Reflexión final
-
-Copilot ayudó a detectar que el contrato propuesto no correspondía a rutas existentes.
-pytest hizo observables las diferencias desde RED, sin descargar el modelo pesado.
-El ciclo TDD permitió implementar las rutas contra criterios medibles y repetibles.
-La separación de procesamiento y chat facilitó probar componentes sin llamadas externas.
-Los mocks mantuvieron las pruebas rápidas y evitaron depender de inferencia real.
-La solución en memoria es útil para el prototipo, pero no sustituye persistencia de producción.
+Todo el código y casos de prueba sugeridos por la IA fueron auditados críticamente bajo criterio de ingeniería senior: se corrigieron aserciones débiles, se ajustaron cálculos de redondeo IEEE 754 y se descartaron pruebas redundantes o superficiales, garantizando una suite robusta, determinista y mantenible.

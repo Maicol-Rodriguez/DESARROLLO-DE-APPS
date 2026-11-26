@@ -7,3 +7,4 @@ python-multipart==0.0.32
 pypdf==7.0.0
 python-docx==1.2.0
 filelock==4.2.1
+google-genai==2.33.0

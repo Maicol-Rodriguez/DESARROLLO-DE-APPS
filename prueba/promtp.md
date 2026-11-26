@@ -11,7 +11,7 @@ Requisitos funcionales:
 1. Recibe un JSON con el campo "texto".
 2. Valida la entrada: no vacío, mínimo 50 palabras y máximo 5000 caracteres. Los errores deben devolver HTTP 400 o 422 con mensajes claros en español (incluye también los errores de validación de Pydantic, que por defecto salen en inglés: personalízalos).
 3. Calcula la perplejidad del texto con un modelo GPT-2 de Hugging Face Transformers, y la variabilidad entre oraciones (burstiness) como la desviación estándar de la perplejidad por oración.
-4. Combina ambas métricas en una puntuación de 0 a 100 de "probabilidad estimada de IA". Explica en un comentario la lógica y los umbrales, déjalos como constantes con nombre al inicio del archivo y aclara que son heurísticos, sin validación científica.
+4. Combina ambas métricas en un índice heurístico de 0 a 100. No lo llames probabilidad: sus umbrales son experimentales y no están calibrados científicamente. Explica la lógica y los umbrales mediante constantes con nombre.
 5. Devuelve un JSON con: "puntuacion", "nivel" (bajo, medio o alto), "perplejidad", "variabilidad", "oraciones_sospechosas" (las 3 oraciones más predecibles, es decir, con menor perplejidad) y "aviso" (texto fijo que aclare que es una estimación y no una prueba definitiva).
 
 Decisiones técnicas obligatorias:
