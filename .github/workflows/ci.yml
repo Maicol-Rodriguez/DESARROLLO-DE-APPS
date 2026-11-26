@@ -11,6 +11,9 @@ permissions:
 
 jobs:
   test:
+    defaults:
+      run:
+        working-directory: prueba
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -22,8 +25,8 @@ jobs:
           python-version: "3.11"
           cache: "pip"
           cache-dependency-path: |
-            requirements.txt
-            requirements-dev.txt
+              prueba/requirements.txt
+              prueba/requirements-dev.txt
 
       - name: Install development dependencies
         run: python -m pip install -r requirements-dev.txt
